@@ -31,24 +31,24 @@ def timerHandler(ContextInfo):
     global g_data
 
     if not check_is_盘中_or_临近(curr_time):
-        print(f"当前时间不在交易中： {curr_time}")
+        print(f"{策略名称} 当前时间不在交易中： {curr_time}")
         return
     sql_all_标的 = "SELECT * FROM " + table_t + " WHERE status='1' AND account_nick='" + str(cst.account_nick) + "'"
     all_df = get_df_from_table(sql_all_标的)
     if len(all_df) == 0:
-        print(f"{策略名称} {table_t} 有效标的为空，跳过")
+        print(f"{策略名称} 有效标的为空，跳过")
 
     for index, row in all_df.iterrows():
         qmt_code = row['qmt_code']
         name = qu.get_name_by_qmtcode(ContextInfo, qmt_code)
         观察起始日 = get_dtime_by_datefield(row, '观察起始日dtime')
-        print(f"观察起始日: {观察起始日}")
+        print(f"{策略名称} 观察起始日: {观察起始日}")
         是否做t = (get_num_by_numfield(row, '是否做t') == 1)
         成交量放量股数阈值 = get_num_by_numfield(row, '成交量放量股数阈值')
         rt_成交量放量dtime = get_dtime_by_datefield(row, 'rt_成交量放量dtime')
         period = get_str_by_strfield(row, 'period')  # 周期
         if period is None or period not in qu.period_list:
-            log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
             continue
 
         df = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', start_time=观察起始日.replace('-', ''))
@@ -72,7 +72,7 @@ def timerHandler(ContextInfo):
                     g_data.update({key: '1'})
                     rt_成交量放量dtime = rt_成交量放量dt
 
-                    log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] 成交量放量dtime dt:{dt}, rt_成交量放量dtime: {rt_成交量放量dtime}")
+                    log_and_send_im(f"{策略名称} {qmt_code}[{name}] 成交量放量dtime dt:{dt}, rt_成交量放量dtime: {rt_成交量放量dtime}")
                     save_or_update_by_sql("UPDATE " + table_t + " SET rt_成交量放量dtime='" + rt_成交量放量dtime + "', 是否做t='0' " + where_clause)
 
             if ii < len(df):  # 最后一条数据为盘中，盘中k线未最终确认，不参与计算上影线
@@ -90,12 +90,12 @@ def timerHandler(ContextInfo):
                         g_data.update({key: '1'})
                         上影线出现后卖出价与上影线最高价百分比 = get_num_by_numfield(row, '上影线出现后卖出价与上影线最高价百分比')
                         rt_上影线后卖出价格 = row2['high'] * 上影线出现后卖出价与上影线最高价百分比 / 100
-                        log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] 上影线dtime dt:{dt}, rt_上影线dtime: {rt_上影线dtime}")
+                        log_and_send_im(f"{策略名称} {qmt_code}[{name}] 上影线dtime dt:{dt}, rt_上影线dtime: {rt_上影线dtime}")
                         save_or_update_by_sql("UPDATE " + table_t + " SET rt_上影线dtime='" + rt_上影线dtime + "', rt_上影线后卖出价格='" + str(rt_上影线后卖出价格) + "' " + where_clause)
 
 
 def init(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称} 策略已启动init")
+    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()} {策略名称} 策略已启动init")
 
     pass_qmt_funcs()
     ContextInfo.set_account(cst.account)
@@ -105,7 +105,7 @@ def init(ContextInfo):
 
 
 def handlebar(ContextInfo):
-    print('这是 handlebar 中的 3秒一次的tick ~~~')
+    print(f'{策略名称} 这是 handlebar 中的 3秒一次的tick ~~~')
     curr_time = get_curr_time()
 
     if not check_is_盘中_or_临近(curr_time):
@@ -117,7 +117,7 @@ def handlebar(ContextInfo):
     sql_all_标的 = "SELECT * FROM " + table_t + " WHERE status='1' AND account_nick='" + str(cst.account_nick) + "'"
     all_df = get_df_from_table(sql_all_标的)
     if len(all_df) == 0:
-        print(f"{策略名称} {table_t} 有效标的为空，跳过")
+        print(f"{策略名称} 有效标的为空，跳过")
 
     for index, row in all_df.iterrows():
         qmt_code = row['qmt_code']
@@ -131,19 +131,19 @@ def handlebar(ContextInfo):
         rt_当前做t状态 = get_str_by_strfield(row, 'rt_当前做t状态')
         period = get_str_by_strfield(row, 'period')  # 周期
         if period is None or period not in qu.period_list:
-            log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
             continue
         if 做t均线 <= 1:
-            log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}]  做t均线设置错误， 做t均线：{做t均线}，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}]  做t均线设置错误， 做t均线：{做t均线}，请检查，此条做T策略忽略！！")
             continue
         if 做t止损均线 <= 1:
-            log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] 止损均线设置错误， 做t止损均线：{做t止损均线}，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 止损均线设置错误， 做t止损均线：{做t止损均线}，请检查，此条做T策略忽略！！")
             continue
 
         观察起始日 = str(row['观察起始日dtime'])[:10]
-        print(f"观察起始日: {观察起始日}")
+        print(f"{策略名称} 观察起始日: {观察起始日}")
         if 观察起始日 > get_curr_date():
-            print(f"观察起始日: {观察起始日} 未到！跳过。。。")
+            print(f"{策略名称} 观察起始日: {观察起始日} 未到！跳过。。。")
             continue
 
         if 是否做t:
@@ -159,14 +159,14 @@ def handlebar(ContextInfo):
                     key = qmt_code + "_" + get_curr_date() + "_zs"
                     if g_data.get(key) is None:
                         g_data.update({key: '1'})
-                        log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！")
+                        log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！")
                     continue
                 卖出数量 = 100  # todo：仓位，测试期间暂定100股
 
                 qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖
 
                 save_or_update_by_sql("UPDATE " + table_t + " SET 是否做t='0', status='0' " + where_clause)
-                log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] 达到做t止损卖出条件，已下单清仓！！")
+                log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到做t止损卖出条件，已下单清仓！！")
                 continue
 
             else:
@@ -227,7 +227,7 @@ def handlebar(ContextInfo):
                 qu.he_sell_stock(ContextInfo, qmt_code, name, 可卖数量, 策略名称)  # 核按钮卖
 
                 save_or_update_by_sql("UPDATE " + table_t + " SET status='0' " + where_clause)
-                log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] 达到止损卖出条件，已下单清仓！！")
+                log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，已下单清仓！！")
             else:
                 if rt_上影线dtime is not None and rt_上影线后已触发卖出 == 0:  # 按上影线那天价格的98%下单
                     rt_上影线后卖出价格 = get_num_by_numfield(row, 'rt_上影线后卖出价格')
@@ -271,5 +271,5 @@ def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=Non
 
 
 def stop(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称} 策略已停止！")
+    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称} 策略已停止！")
 
