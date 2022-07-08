@@ -172,12 +172,12 @@ def is_竞价开关_prepared():
     conf_sql = "SELECT * FROM xyy_config WHERE conf='竞价自动下单'"
     conf_df = get_df_from_table(conf_sql)
     if len(conf_df) == 0:
-        log_and_send_im("无竞价自动下单配置，请检查xyy_config表对应的配置项")
+        log_and_send_im(f"{策略名称} 无竞价自动下单配置，请检查xyy_config表对应的配置项")
         is_prepared = False
     else:
         conf_data = conf_df.iloc[0]
         if conf_data['val'] != '1':
-            log_and_send_im("竞价配置数据未准备好，请等待xg程序将'竞价自动下单'对应的val值设置为1...")
+            log_and_send_im(f"{策略名称} 竞价配置数据未准备好，请等待xg程序将'竞价自动下单'对应的val值设置为1...")
             is_prepared = False
         else:
             is_prepared = True
@@ -193,4 +193,4 @@ def pass_qmt_funcs():
 
 
 def stop(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称} 策略已停止！")
+    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称} 策略已停止！")
