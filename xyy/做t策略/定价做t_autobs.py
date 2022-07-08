@@ -22,7 +22,6 @@ CREATE TABLE `bsea_做t_定价` (
   `初始做t资金` float(15,2) DEFAULT NULL,
   `rt_当前持股数` int DEFAULT NULL COMMENT '单位：股',
   `rt_当前做t状态` char(255) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT '已t出、已买回、或空',
-  `rt_当前做t资金` float(15,2) DEFAULT NULL,
   `status` tinyint DEFAULT '1' COMMENT '1有效，0作废数据',
   `lastmodified` datetime DEFAULT NULL,
   PRIMARY KEY (`qmt_code`,`account_nick`)
@@ -38,7 +37,7 @@ table_t = 'bsea_做t_定价'
 
 
 def handlebar(ContextInfo):
-    print('这是 {策略名称} handlebar 中的 3秒一次的tick ~~~')
+    print(f'这是 {策略名称} handlebar 中的 3秒一次的tick ~~~')
 
     sql_all_标的 = "SELECT * FROM " + table_t + " WHERE status='1' AND account_nick='" + str(cst.account_nick) + "'"
     all_df = get_df_from_table(sql_all_标的)
@@ -55,7 +54,6 @@ def handlebar(ContextInfo):
         初始做t资金 = get_num_by_numfield(row, '初始做t资金')  # 当前做t支配的资金量，初始做T资金
         rt_当前持股数 = get_num_by_numfield(row, 'rt_当前持股数')
         rt_当前做t状态 = get_str_by_strfield(row, 'rt_当前做t状态')
-        rt_当前做t资金 = get_num_by_numfield(row, 'rt_当前做t资金')
 
         df = ContextInfo.get_market_data(fields=['volume', 'close'], stock_code=[qmt_code], period='1d', dividend_type='front', count=1)
         if len(df) == 0 or df.iloc[0]['volume'] == 0:  # 判断volume是为了过滤停牌
@@ -78,21 +76,20 @@ def handlebar(ContextInfo):
         else:
             where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
             if (rt_当前做t状态 == '' or rt_当前做t状态 == '已T出') and (price_zs < 当前价格 <= price_low):  # 刚开始，或已经卖； 当价格跌到买入价位置，执行'买回'动作
-                rt_当前做t资金 = rt_当前做t资金 if rt_当前做t资金 != 0 else 初始做t资金
-                买入股数 = int(rt_当前做t资金 / 当前价格 / 100) * 100
+                买入股数 = int(初始做t资金 / 当前价格 / 100) * 100
                 买入股数 = 100  # todo: 仓位大小需要
 
                 qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买入
 
-                rt_当前做t资金 -= 买入股数 * 当前价格
                 t_status = T_Type.已买回.name
-                update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', rt_当前做t资金='" + str(rt_当前做t资金) + "', rt_当前持股数='" + str(买入股数) + "', lastmodified='" + get_lastmodified() + "'" + where_clause
+                update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "', lastmodified='" + get_lastmodified() + "'" + where_clause
                 save_or_update_by_sql(update_sql)
                 continue
 
             if (rt_当前做t状态 == '' or rt_当前做t状态 == '已买回') and (当前价格 >= price_high):  # 刚开始，或已经买； 当价格上升到卖出价位置，执行'卖出'动作
                 可卖股数 = qu.get_可卖股数_by_qmtcode(cst.account, qmt_code)
-                卖出股数 = min(rt_当前持股数, 可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出
+                做t资金卖出股数 = int(初始做t资金 / 当前价格 / 100) * 100
+                卖出股数 = min(rt_当前持股数, 做t资金卖出股数, 可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出
                 if 卖出股数 == 0:
                     print(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db卖出股数：{rt_当前持股数}, 持仓可卖股数: {可卖股数}")
                     continue
@@ -100,9 +97,8 @@ def handlebar(ContextInfo):
 
                 qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖出
 
-                rt_当前做t资金 += 卖出股数 * 当前价格
                 t_status = T_Type.已t出.name
-                update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', rt_当前做t资金='" + str(rt_当前做t资金) + "', rt_当前持股数='" + str(0) + "', lastmodified='" + get_lastmodified() + "'" + where_clause
+                update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', rt_当前持股数='" + str(0) + "', lastmodified='" + get_lastmodified() + "'" + where_clause
                 save_or_update_by_sql(update_sql)
                 continue
 
