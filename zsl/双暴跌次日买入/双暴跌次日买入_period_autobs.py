@@ -41,7 +41,7 @@ g_code_set = set()
 
 
 def recheck_prepare_stocks(ContextInfo):
-    print('------$$$$$$ timerHandler计时器' + get_curr_date() + " " + get_curr_time())
+    print(f'------$$$$$$ {策略名称} timerHandler计时器' + get_curr_date() + " " + get_curr_time())
     global g_code_set
     global g_prepare_df
     global g_period
@@ -49,17 +49,15 @@ def recheck_prepare_stocks(ContextInfo):
     g_code_set = set()
 
     s = ContextInfo.get_stock_list_in_sector('双暴跌买入')
-    print("双暴跌买入板块成分股：" + str(s))
+    print(f"{策略名称} 双暴跌买入板块成分股：" + str(s))
     g_code_set = set(s)
-    print(f"g_code_set: {g_code_set}")
-    print(f"g_code_list: {list(g_code_set)}")
+    print(f"{策略名称} g_code_set: {g_code_set}")
+    print(f"{策略名称} g_code_list: {list(g_code_set)}")
 
     zuotian_date = get_zuotian_date()
-    print(f"昨天日期: {zuotian_date}")
 
     df_all = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=list(g_code_set), period=g_period, dividend_type='front', count=10)
     print(df_all)
-    print(len(df_all))
     hq_all_dict = {}
 
     for qmt_code in g_code_set:
@@ -67,7 +65,7 @@ def recheck_prepare_stocks(ContextInfo):
         cnt_ma5_lower = 3
         df = df_all[qmt_code].copy()
         if len(df) <= cnt_ma5_lower:
-            print(f"取到的k线数据太少，小于等于{cnt_ma5_lower}，忽略")
+            print(f"{策略名称} 取到的k线数据太少，小于等于{cnt_ma5_lower}，忽略")
             continue
         df['ma5'] = talib.MA(df['close'], 5)
         df['pre_close'] = df['close'].shift(1)
@@ -81,14 +79,14 @@ def recheck_prepare_stocks(ContextInfo):
         if pre1k_data['涨幅'] <= -g_pre1k下跌百分比 < 0 and pre2k_data['涨幅'] <= -g_pre2k下跌百分比 < 0:
             满足双暴跌买入预备条件 = True
             pre_close = pre1k_data['close']  # 设置pre1k收盘价
-            log_and_send_im(f"{name} {qmt_code} 满足双暴跌买入预备条件，开始监控择机买入， pre_close: {fmt_float2str(pre_close)}")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 满足双暴跌买入预备条件，开始监控择机买入， pre_close: {fmt_float2str(pre_close)}")
             g_prepare_df = g_prepare_df.append({'qmt_code': qmt_code, '满足双暴跌买入预备条件': 满足双暴跌买入预备条件, 'pre_close': pre_close, 'name': name}, ignore_index=True)
 
-    print(f"{策略名称}第一、第二天满足条件，预备股池: {g_prepare_df}")
+    print(f"{策略名称} 第一、第二天满足条件，预备股池: {g_prepare_df}")
 
 
 def init(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()}  {策略名称} 策略已启动init")
+    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称} 策略已启动init")
     pass_qmt_funcs()
     ContextInfo.set_account(cst.account)
 
@@ -97,14 +95,13 @@ def init(ContextInfo):
 
 
 def handlebar(ContextInfo):
-    print('这是 handlebar 中的 3秒一次的tick ~~~')
+    print('{策略名称} 这是 handlebar 中的 3秒一次的tick ~~~')
 
     global g_prepare_df
     global g_period
     d = ContextInfo.barpos
     realtime = ContextInfo.get_bar_timetag(d)
     nowdate = timetag_to_datetime(realtime, '%Y-%m-%d %H:%M:%S')
-    print(nowdate)
 
     global g_countdown_latch
     g_countdown_latch -= 1
@@ -135,7 +132,7 @@ def handlebar(ContextInfo):
                 select_sql = "SELECT * FROM " + buy_table + " WHERE code='" + qmt_code[:6] + "' AND dtime='" + dtime_curr + "' AND 策略='" + 策略名称 + "' AND status=1"
                 select_df = get_df_from_table(select_sql)
                 if len(select_df) > 0:  # 已下过单
-                    print(f"已下过单，忽略: {select_df.iloc[0]}")
+                    print(f"{策略名称} 已下过单，忽略: {select_df.iloc[0]}")
                     continue
 
                 # 计算CCI
@@ -144,13 +141,13 @@ def handlebar(ContextInfo):
                 if g_启用成交量 or g_启用CCI向上:
                     df32 = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=g_period, dividend_type='front', count=21)
                     if len(df32) == 0:
-                        log_and_send_im("获取cci、均量线指标数据源出错, 请联系qmt或检查网络状态")
+                        log_and_send_im(f"{策略名称} 获取cci、均量线指标数据源出错, 请联系qmt或检查网络状态")
                         continue
 
                     if g_启用CCI向上:
                         cci_timeperiode = 14
                         if len(df32) == 0:
-                            log_and_send_im("获取cci指标数据源出错, 请联系qmt或检查网络状态")
+                            log_and_send_im(f"{策略名称} 获取cci指标数据源出错, 请联系qmt或检查网络状态")
                             continue
                         df32['cci'] = talib.CCI(df32['high'], df32['low'], df32['close'], cci_timeperiode)
                         print(df32)
@@ -162,7 +159,7 @@ def handlebar(ContextInfo):
                         if curr_data_cci['cci'] > pre1k_data_cci['cci'] > pre2k_data_cci['cci'] > pre3k_data_cci['cci']:
                             cci_cond = True
                         if not cci_cond:
-                            print(f"CCI指标为: {curr_data_cci}, 不满足连续3K一天比一天大，忽略")
+                            print(f"{策略名称} CCI指标为: {curr_data_cci}, 不满足连续3K一天比一天大，忽略")
                             continue
 
                     if g_启用成交量:
@@ -176,7 +173,7 @@ def handlebar(ContextInfo):
                         if curr_data['volume'] < curr_data['vol_ma5'] and pre1k_data['volume'] < pre1k_data['vol_ma5'] and pre2k_data['volume'] < pre2k_data['vol_ma5']:
                             vol_cond = True
                         if not vol_cond:
-                            print(f"vol均量线指标为: {curr_data}, 不满足连续3K低于5均限量，忽略")
+                            print(f"{策略名称} vol均量线指标为: {curr_data}, 不满足连续3K低于5均限量，忽略")
                             continue
 
                 可用资金 = qu.get_可用资金()
@@ -186,7 +183,7 @@ def handlebar(ContextInfo):
                 买入股数 = 100  # todo：测试用，最大买入数量100股
 
                 qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)
-                log_and_send_im(f"{name}[{qmt_code}]达到第三天下跌阈值{g_curr下跌阈值}%，委托买入，下单金额: {买入资金}, 委托价格：核按钮买入, 买入股数： {买入股数}")
+                log_and_send_im(f"{策略名称} {name}[{qmt_code}]达到第三天下跌阈值{g_curr下跌阈值}%，委托买入，下单金额: {买入资金}, 委托价格：核按钮买入, 买入股数： {买入股数}")
 
                 # insert到已买入表，留作日志用
                 买入时间 = dtime_curr + " " + get_curr_time()
@@ -205,7 +202,7 @@ def handlebar(ContextInfo):
     sql = "SELECT * FROM " + sell_table + " WHERE 买入策略名称='" + 策略名称 + "' AND 买入时间<'" + get_curr_date() + "' AND 是否卖出=0 AND account_nick='" + cst.account_nick + "' ORDER BY qmt_code ASC"
     sell_df = get_df_from_table(sql)
     if len(sell_df) == 0:
-        print("暂无卖出标的，忽略")
+        print("{策略名称} 暂无卖出标的，忽略")
         return
 
     可用资金, 持仓df, obj_list = qu.get_stock_持仓列表()
@@ -213,7 +210,7 @@ def handlebar(ContextInfo):
         qmt_code = row4['qmt_code']
         持仓df2 = 持仓df[持仓df['qmt_code'] == qmt_code].copy()
         if len(持仓df2) == 0:
-            print(f"持仓中已经无此标的: {qmt_code}")
+            print(f"{策略名称} 持仓中已经无此标的: {qmt_code}")
             update_sql = "UPDATE " + sell_table + " SET 是否卖出=1 WHERE qmt_code='" + qmt_code + "'"
             save_or_update_by_sql(update_sql)
             continue
@@ -224,7 +221,7 @@ def handlebar(ContextInfo):
             卖出数量 = data0['可卖数量']
             当前持仓量 = data0['当前持仓量']
             if 卖出数量 <= 0:
-                log_and_send_im(f"{qmt_code}当前持仓量：{当前持仓量}, 可卖数量为: {卖出数量}, 无法卖出！！！")
+                log_and_send_im(f"{策略名称} {qmt_code}当前持仓量：{当前持仓量}, 可卖数量为: {卖出数量}, 无法卖出！！！")
             else:
                 qu.he_sell_stock(ContextInfo, code, name, 卖出数量, 策略名称)  # 放到前面去设置'是否卖出'=1
 
@@ -237,4 +234,4 @@ def pass_qmt_funcs():
 
 
 def stop(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称} 策略已停止！")
+    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称} 策略已停止！")
