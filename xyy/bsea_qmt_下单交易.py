@@ -26,7 +26,7 @@ def timerHandler(ContextInfo):
     curr_time = get_curr_time()
     curr_date = get_curr_date()
 
-    print(f'------$$$$$$ timerHandler计时器 {curr_date} {curr_time}')
+    print(f'------$$$$$$ {策略名称} timerHandler计时器 {curr_date} {curr_time}')
 
     global g_一字板_df
 
@@ -38,7 +38,7 @@ def timerHandler(ContextInfo):
             df = get_df_from_table("SELECT * FROM bsea_buy_info WHERE dtime='" + curr_date + "' AND status=1 ORDER BY 策略 ASC, 推荐理由 ASC")
             print(df)
             if len(df) == 0:
-                print(curr_date + " 今日无xg结果！！！")
+                print(策略名称 + " " + curr_date + " 今日无xg结果！！！")
             else:
                 for index, row in df.iterrows():
                     name = row['name']
@@ -60,7 +60,7 @@ def timerHandler(ContextInfo):
                 pre_close = row['pre_close']
                 一字板, 涨停价 = qu.is_当天一字板_by_qmt(ContextInfo, qmt_code, pre_close)
                 if 一字板:
-                    print(code + " 开盘顶一字板（如一直未开板就持有，开板就砸盘）")
+                    print(策略名称 + " " + code + " 开盘顶一字板（如一直未开板就持有，开板就砸盘）")
                     g_一字板_df = g_一字板_df.append({'code': code, 'name': name, '涨停价': 涨停价}, ignore_index=True)  #
 
     if (curr_time >= '09:30:00' and curr_time < '11:33:00') or (curr_time >= '12:57:00' and curr_time < '15:03:00'):  # 卖出
@@ -81,14 +81,14 @@ def timerHandler(ContextInfo):
 
             # 计算当日涨停、跌停价
             当日涨停价, 当日跌停价 = get_涨停_跌停价(code, pre_close)
-            print(f"{code}  {name}, pre_close: {pre_close}, 涨停价: {当日涨停价}, 跌停价: {当日跌停价}")
+            print(f"{策略名称} {code}[{name}], pre_close: {pre_close}, 涨停价: {当日涨停价}, 跌停价: {当日跌停价}")
             tmpdf = 可卖持仓df[可卖持仓df['code'] == code].copy()
             if len(tmpdf) > 0:
                 tmpdata = tmpdf.iloc[0]
                 当前价 = tmpdata['当前价']
                 可卖数量 = tmpdata['可卖数量']
                 当日涨幅 = 100 * (当前价 - pre_close) / pre_close
-                print(f"当前价: {fmt_float2str(当前价)}, 当前涨幅: {fmt_float2str(当日涨幅)}")
+                print(f"{策略名称} {code}[{name}] 当前价: {fmt_float2str(当前价)}, 当前涨幅: {fmt_float2str(当日涨幅)}")
 
                 if 可卖数量 > 0:
                     # 查看是否一字板的情况
@@ -115,16 +115,16 @@ def timerHandler(ContextInfo):
         qu.新股_新债_申购(ContextInfo)
 
     if (curr_time >= '11:33:00' and curr_time < '12:57:00'):
-        print("中午已收盘, sleep 15s")
+        print(f"{策略名称} 中午已收盘, sleep 15s")
         time.sleep(15)
 
     if (curr_time >= '15:03:00' and curr_time < '15:33:00'):  # 全量资金all in国债逆回购1天期, 有防重复下单功能，实际钱不够也不可能重复买入。逆回购交易时间延长到15:30
         qu.国债逆回购(ContextInfo, cst.account)
-        print("已收盘, sleep 30s")
+        print(f"{策略名称} 已收盘, sleep 30s")
         time.sleep(30)
 
     if curr_time >= '15:33:00':  # 已收盘
-        print("已收盘, sleep 300s")
+        print(f"{策略名称} 已收盘, sleep 300s")
         time.sleep(300)
 
 
@@ -139,7 +139,7 @@ def init(ContextInfo):
 
 
 def handlebar(ContextInfo):
-    print('这是 handlebar 中的 say hi~~~')
+    print(f'{策略名称} 这是 handlebar 中的 say hi~~~')
 
     d = ContextInfo.barpos
     realtime = ContextInfo.get_bar_timetag(d)
