@@ -44,7 +44,6 @@ def handlebar(ContextInfo):
         低于均线百分比买入 = get_num_by_numfield(row, '低于均线百分比买入')  # 如5，即表示低于均线5%买入
         初始做t资金 = get_num_by_numfield(row, '初始做t资金')  # 当前做t支配的资金量
         rt_当前做t状态 = get_str_by_strfield(row, 'rt_当前做t状态')
-        rt_当前持股数 = get_str_by_strfield(row, 'rt_当前持股数')
         period = get_str_by_strfield(row, 'period')  # 周期
         if period is None or period not in qu.period_list:
             log_and_send_im(f"{策略名称} {qmt_code} {name} period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
