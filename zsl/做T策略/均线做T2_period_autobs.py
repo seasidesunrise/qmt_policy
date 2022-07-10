@@ -46,13 +46,13 @@ def handlebar(ContextInfo):
         rt_当前做t状态 = get_str_by_strfield(row, 'rt_当前做t状态')
         period = get_str_by_strfield(row, 'period')  # 周期
         if period is None or period not in qu.period_list:
-            log_and_send_im(f"{策略名称} {qmt_code} {name} period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
             continue
         if 做t均线 <= 1:
-            log_and_send_im(f"{策略名称} {qmt_code} {name} 均线设置错误， 做t均线：{做t均线}，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 均线设置错误， 做t均线：{做t均线}，请检查，此条做T策略忽略！！")
             continue
         if 做t止损均线 <= 1:
-            log_and_send_im(f"{策略名称} {qmt_code} {name} 均线设置错误， 止损均线：{做t止损均线}，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 均线设置错误， 止损均线：{做t止损均线}，请检查，此条做T策略忽略！！")
             continue
 
         df = get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 做t止损均线)
