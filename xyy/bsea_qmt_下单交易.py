@@ -80,7 +80,7 @@ def timerHandler(ContextInfo):
             pre_close = row['pre_close']
 
             # 计算当日涨停、跌停价
-            当日涨停价, 当日跌停价 = get_涨停_跌停价(code, pre_close)
+            当日涨停价, 当日跌停价 = qu.get_涨停_跌停价_by_qmt(ContextInfo, qmt_code)
             print(f"{策略名称} {code}[{name}], pre_close: {pre_close}, 涨停价: {当日涨停价}, 跌停价: {当日跌停价}")
             tmpdf = 可卖持仓df[可卖持仓df['code'] == code].copy()
             if len(tmpdf) > 0:
@@ -92,13 +92,16 @@ def timerHandler(ContextInfo):
 
                 if 可卖数量 > 0:
                     # 查看是否一字板的情况
-                    一字板tmpdf = g_一字板_df[g_一字板_df['code'] == code]
-                    if len(一字板tmpdf) > 0:  # 开盘一字板的case
-                        一字板tmpdata = 一字板tmpdf.iloc[0]
-                        涨停价 = 一字板tmpdata['涨停价']
-                        if 当前价 < 涨停价:  # 破板，立即挂跌停价卖出
-                            qu.sell_stock(ContextInfo, qmt_code, name, 当日跌停价, 可卖数量, 策略)
-                    else:
+                    is_开盘一字板 = False
+                    if len(g_一字板_df) > 0:
+                        一字板tmpdf = g_一字板_df[g_一字板_df['code'] == code]
+                        if len(一字板tmpdf) > 0:  # 开盘一字板的case
+                            一字板tmpdata = 一字板tmpdf.iloc[0]
+                            涨停价 = 一字板tmpdata['涨停价']
+                            if 当前价 < 涨停价:  # 破板，立即挂跌停价卖出
+                                qu.sell_stock(ContextInfo, qmt_code, name, 当日跌停价, 可卖数量, 策略)
+
+                    if not is_开盘一字板:
                         if curr_time > '14:56:00':
                             # 先撤单
                             qu.cancel_all_order(ContextInfo, cst.account, 策略)
