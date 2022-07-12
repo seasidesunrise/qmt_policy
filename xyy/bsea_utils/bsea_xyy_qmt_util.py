@@ -97,7 +97,7 @@ def get_stock_持仓列表(account=cst.account):
         可用资金 = i.m_dAvailable
         print("帐户可用资金为：", i.m_dAvailable)
 
-    持仓df = pd.DataFrame(columns=['code', 'name', '当前持仓量', '可卖数量', '冻结数量', '持仓成本', '当前价', '浮动盈亏', '盈亏比例'])
+    持仓df = pd.DataFrame(columns=['qmt_code', 'code', 'name', '当前持仓量', '可卖数量', '冻结数量', '持仓成本', '当前价', '浮动盈亏', '盈亏比例'])
     print("帐户持有股票为：")
     for obj in obj_list:
         print(
