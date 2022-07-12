@@ -124,7 +124,7 @@ def handlebar(ContextInfo):
         name = qu.get_name_by_qmtcode(ContextInfo, qmt_code)
 
         做t均线 = get_num_by_numfield(row, '做t均线')
-        做t止损均线 = get_num_by_numfield(row, '做t止损均线')
+        做t止损均线 = get_num_by_numfield(row, '做t止损均线')  # >=1000时不止损，请谨慎使用
         是否做t = (get_num_by_numfield(row, '是否做t') == 1)  # 人工开关，控制是否需要做t
         高于均线百分比卖出 = get_num_by_numfield(row, '高于均线百分比卖出')  # 如5，即表示高于均线5%卖出
         做t资金 = get_num_by_numfield(row, '做t资金')  # 当前做t支配的资金量
@@ -152,7 +152,7 @@ def handlebar(ContextInfo):
             当前价格 = curr_data['close']
             where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
 
-            if curr_data['pre_close'] < curr_data['ma' + str(做t止损均线)]:  # 止损
+            if 做t止损均线 < 1000 and curr_data['pre_close'] < curr_data['ma' + str(做t止损均线)]:  # 止损(止损均线设置为1000或以上时，不止损)
                 # todo:  如果还有未成交的单子，是否要在57分之前先撤单
                 卖出数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
                 if 卖出数量 == 0:

@@ -151,7 +151,7 @@ def handlebar(ContextInfo):
             当前价格 = curr_data['close']
             where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
 
-            if curr_data['pre_close'] < curr_data['ma' + str(做t止损均线)]:  # 止损
+            if 做t止损均线 < 1000 and curr_data['pre_close'] < curr_data['ma' + str(做t止损均线)]:  # 止损(止损均线设置为1000或以上时，不止损)
                 # todo:  如果还有未成交的单子，是否要在57分之前先撤单
                 卖出数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
                 if 卖出数量 == 0:

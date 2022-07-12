@@ -60,7 +60,7 @@ def handlebar(ContextInfo):
         当前价格 = curr_data['close']
         where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
 
-        if curr_data['pre_close'] < curr_data['ma' + str(做t止损均线)]:  # 止损
+        if 做t止损均线 < 1000 and curr_data['pre_close'] < curr_data['ma' + str(做t止损均线)]:  # 止损
             # todo:  如果还有未成交的单子，是否要在57分之前先撤单
             卖出数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
             if 卖出数量 == 0:
@@ -130,11 +130,13 @@ def pass_qmt_funcs():
     qu.cancel = cancel
 
 
-def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线):
-    df = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', count=max(做t均线, 止损均线) + 10)
+def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=None):
+    cnt = 做t均线 if 止损均线 is None else max(做t均线, 止损均线)
+    df = ContextInfo.get_market_data(['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', count=int(cnt + 10))
     ma_colname = 'ma' + str(做t均线)
     df[ma_colname] = talib.MA(df['close'], 做t均线)
-    df['ma' + str(止损均线)] = talib.MA(df['close'], 止损均线)
+    if 止损均线 is not None:
+        df['ma' + str(止损均线)] = talib.MA(df['close'], 止损均线)
     df['pre_close'] = df['close'].shift(1)
     df['涨幅'] = 100 * (df['close'] - df['pre_close']) / df['pre_close']
     df['相比均线涨幅'] = 100 * (df['close'] - df[ma_colname]) / df[ma_colname]
