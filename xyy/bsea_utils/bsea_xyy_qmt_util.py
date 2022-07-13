@@ -304,4 +304,4 @@ def get_preclose_day_by_qmtcode(ContextInfo, qmt_code):
     return pre_close
 
 
-period_list = ['5m', '15m', '30m', '1h', '1d', '1w', '1mon']
+period_list = ['1m', '3m', '5m', '15m', '30m', '1h', '1d', '1w', '1mon']
