@@ -24,7 +24,7 @@ g_单支股票最大使用金额 = 5 * 10000  # 单支股票做大仓位，单位：元
 
 g_countdown_latch = 8
 g_prepare_df = pd.DataFrame(columns=['qmt_code', '满足翘板买入预备条件', '跌停价', 'name', 'pre_close', '监控秒数', '初始跌停封单金额', '触发买入封单金额', '监控秒数内至少成交金额'])
-g_final_df = pd.DataFrame(columns=['qmt_code', '初始监控卖一封单', '初始监控成交额', '初始监控成交量', '初始监控时间', '监控秒数', '初始监控时间_dt'])
+g_final_df = pd.DataFrame(columns=['qmt_code', '初始监控卖一封单', '初始监控成交额', '初始监控成交量', '初始监控时间', '初始监控时间_dt'])
 
 
 def recheck_prepare_stocks(ContextInfo):
@@ -101,10 +101,10 @@ def handlebar(ContextInfo):
         pre_close = row2['pre_close']
         name = row2['name']
         跌停价 = row2['跌停价']
-        监控秒数 = row2['监控秒数']
-        初始跌停封单金额 = row2['初始跌停封单金额']
-        触发买入封单金额 = row2['触发买入封单金额']
-        监控秒数内至少成交金额 = row2['监控秒数内至少成交金额']
+        监控秒数 = row2['监控秒数']  # 单位：秒
+        初始跌停封单金额 = row2['初始跌停封单金额']  # 单位：万元
+        触发买入封单金额 = row2['触发买入封单金额']  # 单位：万元
+        监控秒数内至少成交金额 = row2['监控秒数内至少成交金额']  # 单位：万元
 
         curr_data = df3.get(qmt_code)
 
@@ -114,25 +114,25 @@ def handlebar(ContextInfo):
         卖量五档 = curr_data['askVol']
         卖一数量 = 卖量五档[0]
         买量五档 = curr_data['bidVol']
-        卖一金额 = 卖一价格 * 卖一数量 * 100
-        成交额 = curr_data['amount']
-        成交量 = curr_data['volume']
+        卖一金额 = 卖一价格 * 卖一数量 * 100 / 10000  # 单位：万
+        成交额 = curr_data['amount'] / 10000  # 单位：万
+        成交量 = curr_data['volume']  # 单位：手
 
         small_flt = 1 / 10000 / 10000
         close = curr_data['lastPrice']
         close = round(close + small_flt, 2)
         跌停价 = round(跌停价 + small_flt, 2)
 
-        print(f"{qmt_code}[{name}] 当前价: {close}, 跌停价: {跌停价},  卖一价格: {卖一价格}, 卖一数量: {卖一数量}, 卖一金额: {卖一金额}, 成交额: {成交额 / 10000 / 10000}亿, 成交量:{成交量 / 100}手, 初始跌停封单金额：{初始跌停封单金额},  close <= 跌停价: {close <= 跌停价}")
+        print(f"{qmt_code}[{name}] 当前价: {close}, 跌停价: {跌停价},  卖一价格: {卖一价格}, 卖一数量: {卖一数量}, 卖一金额: {卖一金额}, 成交额: {成交额}万, 成交量:{成交量 }手, 初始跌停封单金额：{初始跌停封单金额}万,  close <= 跌停价: {close <= 跌停价}")
 
-        if close <= 跌停价 and 卖一金额 >= 初始跌停封单金额:  # 跌停、且封单大于2亿
+        if close <= 跌停价 and 卖一金额 >= 初始跌停封单金额:  # 跌停、且封单大于2000万
             has_code = False
             if len(g_final_df) > 0:
                 if len(g_final_df[g_final_df['qmt_code'] == qmt_code]) > 0:  # 先删除
                     has_code = True
             if not has_code:
                 g_final_df.loc[qmt_code] = {'qmt_code': qmt_code, '初始监控卖一封单': 卖一金额, '初始监控成交额': 成交额, '初始监控成交量': 成交量, '初始监控时间': time.time(), '初始监控时间_dt': get_curr_time()}
-                log_and_send_im(f"{qmt_code}[{name}] 跌停，封单金额大于 {初始跌停封单金额 / 10000 / 10000}亿，进入监控队列...")
+                log_and_send_im(f"{qmt_code}[{name}] 跌停，封单金额大于 {初始跌停封单金额 }万，进入监控队列...")
                 print(g_final_df)
             return
 
