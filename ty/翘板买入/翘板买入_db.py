@@ -23,7 +23,8 @@ g_单支股票最大使用金额 = 5 * 10000  # 单支股票做大仓位，单位：元
 ############  人工指定部分结束 ###############
 
 g_countdown_latch = 8
-g_prepare_df = g_final_df = pd.DataFrame()
+g_prepare_df = pd.DataFrame(columns=['qmt_code', '满足翘板买入预备条件', '跌停价', 'name', 'pre_close', '监控秒数', '初始跌停封单金额', '触发买入封单金额', '监控秒数内至少成交金额'])
+g_final_df = pd.DataFrame(columns=['qmt_code', '初始监控卖一封单', '初始监控成交额', '初始监控成交量', '初始监控时间', '监控秒数', '初始监控时间_dt'])
 
 
 def recheck_prepare_stocks(ContextInfo):
@@ -57,10 +58,9 @@ def recheck_prepare_stocks(ContextInfo):
 
         满足翘板买入预备条件 = True
         print(f"{策略名称} {qmt_code}[{name}] 满足翘板买入预备条件，开始监控择机买入， 跌停价: {fmt_float2str(跌停价)}")
-        g_prepare_df = g_prepare_df.append({'qmt_code': qmt_code, '满足翘板买入预备条件': 满足翘板买入预备条件, '跌停价': 跌停价, 'name': name, 'pre_close': pre_close,
-                                            '监控秒数': 监控秒数, '初始跌停封单金额': 初始跌停封单金额, '触发买入封单金额': 触发买入封单金额, '监控秒数内至少成交金额': 监控秒数内至少成交金额}, ignore_index=True)
+        g_prepare_df.loc[qmt_code] = {'qmt_code': qmt_code, '满足翘板买入预备条件': 满足翘板买入预备条件, '跌停价': 跌停价, 'name': name, 'pre_close': pre_close, '监控秒数': 监控秒数, '初始跌停封单金额': 初始跌停封单金额, '触发买入封单金额': 触发买入封单金额, '监控秒数内至少成交金额': 监控秒数内至少成交金额}
 
-    log_and_send_im(f"{策略名称}，预备股池: {g_prepare_df}")
+    print(f"{策略名称}，预备股池: {g_prepare_df}")
 
 
 def init(ContextInfo):
@@ -131,7 +131,7 @@ def handlebar(ContextInfo):
                 if len(g_final_df[g_final_df['qmt_code'] == qmt_code]) > 0:  # 先删除
                     has_code = True
             if not has_code:
-                g_final_df = g_final_df.append({'qmt_code': qmt_code, '初始监控卖一封单': 卖一金额, '初始监控成交额': 成交额, '初始监控成交量': 成交量, '初始监控时间': time.time(), '初始监控时间_dt': get_curr_time()}, ignore_index=True)
+                g_final_df.loc[qmt_code] = {'qmt_code': qmt_code, '初始监控卖一封单': 卖一金额, '初始监控成交额': 成交额, '初始监控成交量': 成交量, '初始监控时间': time.time(), '初始监控时间_dt': get_curr_time()}
                 log_and_send_im(f"{qmt_code}[{name}] 跌停，封单金额大于 {初始跌停封单金额 / 10000 / 10000}亿，进入监控队列...")
                 print(g_final_df)
             return
