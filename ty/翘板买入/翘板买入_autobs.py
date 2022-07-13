@@ -76,7 +76,7 @@ def init(ContextInfo):
     ContextInfo.set_account(cst.account)
 
     timer_startTime = get_curr_date() + "00:05:10"
-    ContextInfo.run_time("recheck_prepare_stocks", "60nSecond", timer_startTime)
+    ContextInfo.run_time("recheck_prepare_stocks", "1800nSecond", timer_startTime)
 
 
 def handlebar(ContextInfo):
