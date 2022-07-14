@@ -23,8 +23,8 @@ g_单支股票最大使用金额 = 5 * 10000  # 单支股票做大仓位，单位：元
 ############  人工指定部分结束 ###############
 
 g_countdown_latch = 8
-g_prepare_df = pd.DataFrame(columns=['qmt_code', '满足翘板买入预备条件', '跌停价', 'name', 'pre_close', '监控秒数', '初始跌停封单金额', '触发买入封单金额', '监控秒数内至少成交金额'])
-g_final_df = pd.DataFrame(columns=['qmt_code', '初始监控卖一封单', '初始监控成交额', '初始监控成交量', '初始监控时间', '初始监控时间_dt'])
+g_prepare_df = pd.DataFrame(columns=['qmt_code', 'name', '跌停价', 'pre_close', '监控秒数', '初始跌停封单金额', '触发买入封单金额', '监控秒数内至少成交金额'])
+g_final_df = pd.DataFrame(columns=['qmt_code', 'name', '初始监控卖一封单', '初始监控成交额', '初始监控成交量', '初始监控时间', '初始监控时间_dt'])
 g_今天下过的单_set = set()
 
 
@@ -57,9 +57,8 @@ def recheck_prepare_stocks(ContextInfo):
         pre1k_data = df.iloc[-2]
         pre_close = pre1k_data['close']  # 设置pre1k收盘价
 
-        满足翘板买入预备条件 = True
-        print(f"{策略名称} {qmt_code}[{name}] 满足翘板买入预备条件，开始监控择机买入， 跌停价: {fmt_float2str(跌停价)}")
-        g_prepare_df.loc[qmt_code] = {'qmt_code': qmt_code, '满足翘板买入预备条件': 满足翘板买入预备条件, '跌停价': 跌停价, 'name': name, 'pre_close': pre_close, '监控秒数': 监控秒数, '初始跌停封单金额': 初始跌停封单金额, '触发买入封单金额': 触发买入封单金额, '监控秒数内至少成交金额': 监控秒数内至少成交金额}
+        print(f"{策略名称} {qmt_code}[{name}]， 跌停价: {fmt_float2str(跌停价)}")
+        g_prepare_df.loc[qmt_code] = {'qmt_code': qmt_code, 'name': name, '跌停价': 跌停价, 'pre_close': pre_close, '监控秒数': 监控秒数, '初始跌停封单金额': 初始跌停封单金额, '触发买入封单金额': 触发买入封单金额, '监控秒数内至少成交金额': 监控秒数内至少成交金额}
 
     print(f"{策略名称}，预备股池: {g_prepare_df}")
 
@@ -128,7 +127,7 @@ def handlebar(ContextInfo):
         close = round(close + small_flt, 2)
         跌停价 = round(跌停价 + small_flt, 2)
 
-        print(f"{qmt_code}[{name}] 当前价: {close}, 跌停价: {跌停价},  卖一价格: {卖一价格}, 卖一数量: {卖一数量}, 卖一金额: {卖一金额}, 成交额: {成交额}万, 成交量:{成交量 }手, 初始跌停封单金额：{初始跌停封单金额}万,  close <= 跌停价: {close <= 跌停价}")
+        print(f"{qmt_code}[{name}] 当前价: {close}, 跌停价: {跌停价},  卖一价格: {卖一价格}, 卖一数量: {卖一数量}, 卖一金额: {卖一金额}, 成交额: {成交额}万, 成交量:{成交量}手, 初始跌停封单金额：{初始跌停封单金额}万,  close <= 跌停价: {close <= 跌停价}")
 
         if close <= 跌停价 and 卖一金额 >= 初始跌停封单金额:  # 跌停、且封单大于2000万
             has_code = False
@@ -136,8 +135,8 @@ def handlebar(ContextInfo):
                 if len(g_final_df[g_final_df['qmt_code'] == qmt_code]) > 0:  # 先删除
                     has_code = True
             if not has_code:
-                log_and_send_im(f"{qmt_code}[{name}] 跌停，封单金额大于 {初始跌停封单金额 }万，进入监控队列...")
-            g_final_df.loc[qmt_code] = {'qmt_code': qmt_code, '初始监控卖一封单': 卖一金额, '初始监控成交额': 成交额, '初始监控成交量': 成交量, '初始监控时间': time.time(), '初始监控时间_dt': get_curr_time()}
+                log_and_send_im(f"{qmt_code}[{name}] 跌停，封单金额大于 {初始跌停封单金额}万，进入监控队列...")
+            g_final_df.loc[qmt_code] = {'qmt_code': qmt_code, 'name': name, '初始监控卖一封单': 卖一金额, '初始监控成交额': 成交额, '初始监控成交量': 成交量, '初始监控时间': time.time(), '初始监控时间_dt': get_curr_time()}
             print("############")
             print(g_final_df)
             return
@@ -161,6 +160,7 @@ def handlebar(ContextInfo):
                         log_and_send_im(f"{qmt_code}[{name}] 跌停封单金额急剧减少，触发买入，已下单, 买入价格：{fmt_float2str(买入价格)}, 买入股数: {买入股数}")
                     else:
                         print(f"{qmt_code}[{name}] 今天已下过单，忽略")
+
 
 def pass_qmt_funcs():
     qu.passorder = passorder
