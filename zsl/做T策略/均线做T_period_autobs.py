@@ -67,14 +67,14 @@ def handlebar(ContextInfo):
                 key = qmt_code + "_" + get_curr_date() + "_zs"
                 if g_data.get(key) is None:
                     g_data.update({key: '1'})
-                    log_and_send_im(f"{策略名称} {qmt_code} {name} 达到止损卖出条件，但卖出股数为 0")
+                    log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0")
                 continue
 
             卖出数量 = 100  # todo：应该全部卖掉
             qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖
 
             save_or_update_by_sql("UPDATE " + table_t + " SET status='0' " + where_clause)
-            log_and_send_im(f"{策略名称} {qmt_code} {name} 达到止损卖出条件，已下单清仓！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，已下单清仓！！")
         else:
             相比均线涨幅 = curr_data['相比均线涨幅']
             # 检查偏离均线幅度
@@ -144,7 +144,7 @@ def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=Non
 
 def deal_callback(ContextInfo, dealInfo):
     """ 当账号成交状态有变化时，会执行这个函数 """
-    qu.deal_callback_func(dealInfo)
+    qu.deal_callback_func(dealInfo, 策略名称)
 
 
 def stop(ContextInfo):
