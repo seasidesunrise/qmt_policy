@@ -51,7 +51,7 @@ def handlebar(ContextInfo):
 
         df = ContextInfo.get_market_data(fields=['volume', 'close'], stock_code=[qmt_code], period='1d', dividend_type='front', count=1)
         if len(df) == 0 or df.iloc[0]['volume'] == 0:  # 判断volume是为了过滤停牌
-            print(f"{策略名称} {qmt_code} 获取行情数据失败，跳过")
+            print(f"{策略名称} {qmt_code}[{name}] 获取行情数据失败，跳过")
             continue
         curr_data = df.iloc[0]
         当前价格 = curr_data['close']
