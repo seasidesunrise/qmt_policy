@@ -18,7 +18,7 @@ g_新股申购_finish_date_dict = g_逆回购_finish_date_dict = {}  # 格式：
 
 # 防重复下单
 g_今天下过的单_dict = {}  # 格式：策略-set
-g_sell_委托单_num_dict = {}  # 格式：策略-num
+g_buy_委托单_num_dict = g_sell_委托单_num_dict = {}  # 格式：策略-num
 
 
 def is_当天一字板_by_qmt(ContextInfo, qmt_code, pre_close):
@@ -88,6 +88,7 @@ def get_可用资金(account=cst.account):
     可用资金 = acct_info[0].m_dAvailable
     return 可用资金
 
+
 def get_stock_持仓列表(account=cst.account):
     """ 获取股票 stock帐户的现有持仓。注意提前登录该帐户，否则无结果返回 """
     acct_info = get_trade_detail_data(account, 'stock', 'account')  # 可用资金
@@ -131,27 +132,28 @@ def get_name_by_qmtcode(ContextInfo, qmt_code):
     return ContextInfo.get_stock_name(qmt_code)
 
 
-def deal_callback_func(dealInfo):
+def deal_callback_func(dealInfo, 策略名称):
     """ 成交回调函数 """
-    print(dealInfo.m_strOrderSysID)
-    证券代码 = dealInfo.m_strInstrumentID
-    证券名称 = dealInfo.m_strInstrumentName
-    成交编号 = dealInfo.m_strTradeID
-    买卖标记 = dealInfo.m_strOptName
+    strRemark = dealInfo.m_strRemark
+    if 策略名称 in strRemark:
+        证券代码 = dealInfo.m_strInstrumentID
+        证券名称 = dealInfo.m_strInstrumentName
+        成交编号 = dealInfo.m_strTradeID
+        买卖标记 = dealInfo.m_strOptName
 
-    成交日期tmp = dealInfo.m_strTradeDate
-    成交时间tmp = dealInfo.m_strTradeTime
-    if len(成交时间tmp) == 5:
-        成交时间tmp = '0' + 成交时间tmp
-    成交时间 = 成交时间tmp[:2] + ":" + 成交时间tmp[2:4] + ":" + 成交时间tmp[4:]
-    成交日期 = 成交日期tmp[:4] + "-" + 成交日期tmp[4:6] + "-" + 成交日期tmp[6:]
+        成交日期tmp = dealInfo.m_strTradeDate
+        成交时间tmp = dealInfo.m_strTradeTime
+        if len(成交时间tmp) == 5:
+            成交时间tmp = '0' + 成交时间tmp
+        成交时间 = 成交时间tmp[:2] + ":" + 成交时间tmp[2:4] + ":" + 成交时间tmp[4:]
+        成交日期 = 成交日期tmp[:4] + "-" + 成交日期tmp[4:6] + "-" + 成交日期tmp[6:]
 
-    成交量 = dealInfo.m_nVolume
-    成交均价 = fmt_float2str(dealInfo.m_dPrice)
-    成交额 = fmt_float2str(dealInfo.m_dTradeAmount)
-    手续费 = fmt_float2str(dealInfo.m_dComssion)
-    txt1 = f"{成交日期} {成交时间}  {买卖标记}  {证券代码}[{证券名称}]  {成交量}股,  价格: {成交均价},  金额: {成交额},  手续费:{手续费}"
-    log_and_send_im(txt1)
+        成交量 = dealInfo.m_nVolume
+        成交均价 = fmt_float2str(dealInfo.m_dPrice)
+        成交额 = fmt_float2str(dealInfo.m_dTradeAmount)
+        手续费 = fmt_float2str(dealInfo.m_dComssion)
+        txt1 = f"[{策略名称}] 成交：{成交日期} {成交时间}  {买卖标记}  {证券代码}[{证券名称}]  {成交量}股,  价格: {成交均价},  金额: {成交额},  手续费:{手续费}, strRemark: {strRemark}"
+        log_and_send_im(txt1)
 
 
 def get_qmtcode_by_code(code):
@@ -247,7 +249,7 @@ def buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略):
         今天下过的单_set.add(买单_unique_str)  # todo：是否会有线程安全问题，先忽略
         g_今天下过的单_dict.update({策略: 今天下过的单_set})
         log_and_send_im(f"{策略} 委托买入 {qmt_code}  {name}  {买入股数}  股, 委托价格：{买入价格}, 委托Id: {买单_unique_str}")
-        passorder(23, 1101, cst.account, qmt_code, 11, 买入价格, 买入股数, 策略, 1, ContextInfo)  # 买入
+        passorder(23, 1101, cst.account, qmt_code, 11, 买入价格, 买入股数, 策略, 1, 买单_unique_str, ContextInfo)  # 买入
 
 
 def he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略):
@@ -269,7 +271,7 @@ def sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略):
     global g_sell_委托单_num_dict
     sell_委托单_num = get_num_by_numfield(g_sell_委托单_num_dict, 策略)
     sell_委托单_num += 1
-    sell_order_id = 'SELL_ORDER_' + str(sell_委托单_num)
+    sell_order_id = 策略 + '_SELL_ORDER_' + str(sell_委托单_num)
     g_sell_委托单_num_dict.update({策略: sell_委托单_num})
 
     log_and_send_im(f"{策略} 委托卖出 {qmt_code}  {name} {卖出数量} 股, 委托价格：{卖出价格}, sell_order_id: {sell_order_id}")
@@ -287,7 +289,7 @@ def cancel_all_order(ContextInfo, 策略, account=cst.account):
     sell_委托单_num = get_num_by_numfield(g_sell_委托单_num_dict, 策略)
     print("撤掉所有的单，准备集合竞价成交, sell_委托单_num: " + str(sell_委托单_num))
     for num in range(sell_委托单_num):
-        orderId = 'SELL_ORDER_' + str(num + 1)
+        orderId = 策略 + '_SELL_ORDER_' + str(num + 1)
         log_and_send_im(f"撤销挂单, orderId: {orderId}")
         cancel(orderId, account, 'STOCK')
 
