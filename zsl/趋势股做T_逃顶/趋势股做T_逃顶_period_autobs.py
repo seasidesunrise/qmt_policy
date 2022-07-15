@@ -218,7 +218,7 @@ def handlebar(ContextInfo):
             if curr_data['pre_close'] < curr_data['ma' + str(顶部止损均线)]:  # 止损
                 持仓可卖股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
                 db可卖数量 = get_num_by_numfield(row, '跌破止损均线需卖出股数')
-                可卖数量 = min(db可卖数量, 持仓可卖数量)
+                可卖数量 = min(db可卖数量, 持仓可卖股数)
                 if 可卖数量 == 0:
                     print(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db可卖数量：{db可卖数量}, 持仓可卖股数: {持仓可卖股数}")
                     continue
@@ -254,7 +254,7 @@ def pass_qmt_funcs():
 
 def deal_callback(ContextInfo, dealInfo):
     """ 当账号成交状态有变化时，会执行这个函数 """
-    qu.deal_callback_func(dealInfo)
+    qu.deal_callback_func(dealInfo, 策略名称)
 
 
 def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=None):
