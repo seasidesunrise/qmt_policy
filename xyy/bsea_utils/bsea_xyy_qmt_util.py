@@ -30,9 +30,9 @@ def is_当天一字板_by_qmt(ContextInfo, qmt_code, pre_close):
     print(result_series)
     if len(result_series) > 0:
         result_series['pre_close'] = pre_close
-        当日涨停价, 当日跌停价 = get_涨停_跌停价(code, pre_close)
+        当日涨停价, 当日跌停价 = get_涨停_跌停价_by_qmt(ContextInfo, qmt_code)
 
-        if result_series['open'] == result_series['low'] == 当日涨停价:
+        if result_series['open'] == result_series['low'] >= 当日涨停价:
             print(code + " 一字涨停板")
             一字板 = True
             涨停价 = result_series['high']
