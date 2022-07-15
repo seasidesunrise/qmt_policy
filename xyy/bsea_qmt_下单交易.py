@@ -18,6 +18,9 @@ from bsea_utils.bsea_xyy_util import *
 
 策略名称 = 'BSEA'
 
+bsea_buy_table_t = 'bsea_buy_info'
+bsea_sell_table_t = 'bsea_sell_info'
+
 g_countdown_latch = 0
 g_一字板_df = pd.DataFrame()
 
@@ -26,16 +29,35 @@ def timerHandler(ContextInfo):
     curr_time = get_curr_time()
     curr_date = get_curr_date()
 
+    global g_一字板_df
     print(f'------$$$$$$ {策略名称} timerHandler计时器 {curr_date} {curr_time}')
 
-    global g_一字板_df
+    if curr_time > '09:22:20' and curr_time < '09:25:00':  # 将昨日跌停标的卖出
+        # 处理需要开盘卖出的股票
+        sell_df2 = get_df_from_table("SELECT * FROM " + bsea_sell_table_t + " WHERE sell_dtime='" + get_curr_date() + "' AND 开盘卖出=1 AND status=1 ORDER BY 策略 ASC, 子策略 ASC")
+        print(sell_df2)
+        if len(sell_df2) == 0:
+            print(f"{策略名称} 无 昨日收盘跌停，今日开盘卖出 的标的")
+        else:
+            可用资金, 持仓df, obj_list = qu.get_stock_持仓列表()
+            可卖持仓df = 持仓df[持仓df['可卖数量'] > 0].copy()
+            for index33, row33 in sell_df2.iterrows():
+                qmt_code = row33['qmt_code']
+                策略 = row33['策略']
+                name = qu.get_name_by_qmtcode(qmt_code)
+                tmpdf = 可卖持仓df[可卖持仓df['qmt_code'] == qmt_code].copy()
+                if len(tmpdf):
+                    tmpdata = tmpdf.iloc[0]
+                    可卖数量 = tmpdata['可卖数量']
+                    qu.he_sell_stock(ContextInfo, qmt_code, name, 可卖数量, 策略名称)  # 核按钮卖出
+                    save_or_update_by_sql("UPDATE " + bsea_sell_table_t + " SET status=0 WHERE qmt_code='" + qmt_code + "' AND dtime='" + str(curr_date) + "' AND 策略='" + 策略 + "'")
 
     if curr_time > '09:25:20' and curr_time < '09:30:00':  # 买入
         # 读配置表，是否准备好买入数据
         is_prepared = is_竞价开关_prepared()
         if is_prepared:
             # 读取买入表
-            df = get_df_from_table("SELECT * FROM bsea_buy_info WHERE dtime='" + curr_date + "' AND status=1 ORDER BY 策略 ASC, 推荐理由 ASC")
+            df = get_df_from_table("SELECT * FROM " + bsea_buy_table_t + " WHERE dtime='" + curr_date + "' AND status=1 ORDER BY 策略 ASC, 推荐理由 ASC")
             print(df)
             if len(df) == 0:
                 print(策略名称 + " " + curr_date + " 今日无xg结果！！！")
@@ -48,7 +70,7 @@ def timerHandler(ContextInfo):
                     买入股数 = row['买入股数']
 
                     qu.buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略)
-                    save_or_update_by_sql("UPDATE bsea_buy_info SET status=0 WHERE qmt_code='" + qmt_code + "' AND dtime='" + str(curr_date) + "' AND 策略='" + 策略 + "'")
+                    save_or_update_by_sql("UPDATE " + bsea_buy_table_t + " SET status=0 WHERE qmt_code='" + qmt_code + "' AND dtime='" + str(curr_date) + "' AND 策略='" + 策略 + "'")
 
         # 检查一字板开盘，写入全局变量
         if len(g_一字板_df) == 0:
@@ -96,6 +118,7 @@ def timerHandler(ContextInfo):
                     if len(g_一字板_df) > 0:
                         一字板tmpdf = g_一字板_df[g_一字板_df['code'] == code]
                         if len(一字板tmpdf) > 0:  # 开盘一字板的case
+                            is_开盘一字板 = True
                             一字板tmpdata = 一字板tmpdf.iloc[0]
                             涨停价 = 一字板tmpdata['涨停价']
                             if 当前价 < 涨停价:  # 破板，立即挂跌停价卖出
@@ -128,7 +151,7 @@ def timerHandler(ContextInfo):
 
     if curr_time >= '15:33:00':  # 已收盘
         print(f"{策略名称} 已收盘, sleep 300s")
-        time.sleep(300)
+        time.sleep(600)
 
 
 def init(ContextInfo):
@@ -136,9 +159,9 @@ def init(ContextInfo):
     pass_qmt_funcs()
 
     ContextInfo.set_account(cst.account)
-    timer_startTime = get_curr_date() + "09:25:10"
+    timer_startTime = get_curr_date() + "09:20:10"
 
-    ContextInfo.run_time("timerHandler", "10nSecond", timer_startTime)
+    ContextInfo.run_time("timerHandler", "3nSecond", timer_startTime)
 
 
 def handlebar(ContextInfo):
@@ -163,7 +186,7 @@ def deal_callback(ContextInfo, dealInfo):
 
 def get_sell_infos():
     """ 查询卖出表 """
-    sql2 = "SELECT * FROM bsea_sell_info WHERE sell_dtime='" + get_curr_date() + "' AND status=1 ORDER BY 策略 ASC, 子策略 ASC"
+    sql2 = "SELECT * FROM " + bsea_sell_table_t + " WHERE sell_dtime='" + get_curr_date() + "' AND status=1 ORDER BY 策略 ASC, 子策略 ASC"
     sell_df = get_df_from_table(sql2)
     return sell_df
 
