@@ -243,7 +243,7 @@ def pass_qmt_funcs():
 
 def deal_callback(ContextInfo, dealInfo):
     """ 当账号成交状态有变化时，会执行这个函数 """
-    qu.deal_callback_func(dealInfo)
+    qu.deal_callback_func(dealInfo, 策略名称)
 
 
 def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=None):
