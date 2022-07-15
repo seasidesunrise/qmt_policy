@@ -32,9 +32,9 @@ def recheck_prepare_stocks(ContextInfo):
     curr_time = get_curr_time()
     print(f'------$$$$$$ {策略名称} timerHandler计时器' + get_curr_date() + " " + curr_time)
 
-    # if not check_is_盘中_or_临近(curr_time):
-    #     print(f"{策略名称} 当前时间不在交易中： {curr_time}")
-    #     return
+    if not check_is_盘中_or_临近(curr_time):
+        print(f"{策略名称} 当前时间不在交易中： {curr_time}")
+        return
 
     sql_all_标的 = "SELECT * FROM " + table_t + " WHERE status='1' AND account_nick='" + str(cst.account_nick) + "'"
     all_df = get_df_from_table(sql_all_标的)
