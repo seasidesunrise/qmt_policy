@@ -173,4 +173,4 @@ def pass_qmt_funcs():
 
 
 def stop(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称} 策略已停止！")
+    qu.stop_policy(策略名称)
