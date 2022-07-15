@@ -129,11 +129,13 @@ def pass_qmt_funcs():
     qu.cancel = cancel
 
 
-def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线):
-    df = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', count=max(做t均线, 止损均线) + 10)
+def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=None):
+    cnt = 做t均线 if 止损均线 is None else max(做t均线, 止损均线)
+    df = ContextInfo.get_market_data(['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', count=int(cnt + 10))
     ma_colname = 'ma' + str(做t均线)
     df[ma_colname] = talib.MA(df['close'], 做t均线)
-    df['ma' + str(止损均线)] = talib.MA(df['close'], 止损均线)
+    if 止损均线 is not None:
+        df['ma' + str(止损均线)] = talib.MA(df['close'], 止损均线)
     df['pre_close'] = df['close'].shift(1)
     df['涨幅'] = 100 * (df['close'] - df['pre_close']) / df['pre_close']
     df['相比均线涨幅'] = 100 * (df['close'] - df[ma_colname]) / df[ma_colname]
