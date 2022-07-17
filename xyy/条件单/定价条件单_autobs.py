@@ -3,22 +3,7 @@
 """
 价格条件单策略
 
-作用：用来建仓，执行一次此条条件单即告失效。
-
-建表语句：
-CREATE TABLE `bsea_定价bs条件单` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `qmt_code` char(32) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `account_nick` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT 'qmt账户nick',
-  `条件单类型` char(32) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT '定价买入、定价卖出',
-  `交易价格` float(15,2) DEFAULT NULL,
-  `交易股数` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
-  `交易截止日期` datetime DEFAULT NULL COMMENT '如2022-07-04',
-  `status` tinyint DEFAULT '0' COMMENT '1有效，0作废数据',
-  `lastmodified` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+作用：主要用来建仓，执行一次此条条件单即告失效。
 
 """
 
