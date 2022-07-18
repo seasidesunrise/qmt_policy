@@ -4,6 +4,8 @@
 :Create:  2022/7/1$ 10:14$
 """
 
+import talib
+
 from bsea_utils.bsea_xyy_util import *
 
 # qmt 函数
@@ -19,6 +21,8 @@ g_新股申购_finish_date_dict = g_逆回购_finish_date_dict = {}  # 格式：
 # 防重复下单
 g_今天下过的单_dict = {}  # 格式：策略-set
 g_buy_委托单_num_dict = g_sell_委托单_num_dict = {}  # 格式：策略-num
+
+period_list = ['1m', '3m', '5m', '15m', '30m', '1h', '1d', '1w', '1mon']
 
 
 def is_当天一字板_by_qmt(ContextInfo, qmt_code, pre_close):
@@ -310,4 +314,15 @@ def stop_policy(策略名称):
     log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称} 策略已停止！")
 
 
-period_list = ['1m', '3m', '5m', '15m', '30m', '1h', '1d', '1w', '1mon']
+def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=None):
+    止损均线_无效值 = 1000
+    cnt = 做t均线 if (止损均线 is None or 止损均线 >= 止损均线_无效值) else max(做t均线, 止损均线)
+    df = ContextInfo.get_market_data(['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', count=int(cnt + 10))
+    ma_colname = 'ma' + str(做t均线)
+    df[ma_colname] = talib.MA(df['close'], 做t均线)
+    if 止损均线 is not None and 止损均线 < 止损均线_无效值:
+        df['ma' + str(止损均线)] = talib.MA(df['close'], 止损均线)
+    df['pre_close'] = df['close'].shift(1)
+    df['涨幅'] = 100 * (df['close'] - df['pre_close']) / df['pre_close']
+    df['相比均线涨幅'] = 100 * (df['close'] - df[ma_colname]) / df[ma_colname]
+    return df

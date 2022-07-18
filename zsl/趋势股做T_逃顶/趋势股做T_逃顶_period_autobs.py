@@ -5,8 +5,6 @@
 
 """
 
-import talib
-
 import bsea_utils.bsea_xyy_qmt_util as qu
 from bsea_utils.bsea_xyy_util import *
 
@@ -210,7 +208,7 @@ def handlebar(ContextInfo):
             rt_上影线后已触发卖出 = get_num_by_numfield(row, 'rt_上影线后已触发卖出')
             顶部止损均线 = get_num_by_numfield(row, '顶部止损均线')
 
-            df = get_quatation_by_params(ContextInfo, qmt_code, period, 顶部止损均线)
+            df = qu.get_quatation_by_params(ContextInfo, qmt_code, period, 顶部止损均线)
             curr_data = df.iloc[-1]
             当前价格 = curr_data['close']
             where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
@@ -255,19 +253,6 @@ def pass_qmt_funcs():
 def deal_callback(ContextInfo, dealInfo):
     """ 当账号成交状态有变化时， 会执行这个函数 """
     qu.deal_callback_func(dealInfo, 策略名称)
-
-
-def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=None):
-    cnt = 做t均线 if (止损均线 is None or 止损均线 >= 1000) else max(做t均线, 止损均线)
-    df = ContextInfo.get_market_data(['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', count=int(cnt + 10))
-    ma_colname = 'ma' + str(做t均线)
-    df[ma_colname] = talib.MA(df['close'], 做t均线)
-    if 止损均线 is not None:
-        df['ma' + str(止损均线)] = talib.MA(df['close'], 止损均线)
-    df['pre_close'] = df['close'].shift(1)
-    df['涨幅'] = 100 * (df['close'] - df['pre_close']) / df['pre_close']
-    df['相比均线涨幅'] = 100 * (df['close'] - df[ma_colname]) / df[ma_colname]
-    return df
 
 
 def stop(ContextInfo):
