@@ -7,9 +7,10 @@ qmt 下单程序
 包含新股、新债自动申购、国债逆回购（09:59分开始）
 
 所谓择机卖出，包含三个逻辑：
-1、盘中摸跌停、或涨停，均卖出
-2、一字板不破，持股不卖；一字板开板，立即核按钮
-3、非以上情况，集合竞价挂跌停卖出
+1、开盘需要卖出的（开盘卖出=1），竞价核按钮卖出
+2、盘中摸跌停、或涨停，均卖出
+3、一字板不破，持股不卖；一字板开板，立即核按钮
+4、非以上情况，集合竞价挂跌停卖出
 
 """
 
@@ -177,11 +178,6 @@ def handlebar(ContextInfo):
     if g_countdown_latch <= 0:
         g_countdown_latch = 8
         可用资金, 持仓df, obj_list = qu.get_stock_持仓列表()
-
-
-def deal_callback(ContextInfo, dealInfo):
-    """ 当账号成交状态有变化时，会执行这个函数 """
-    qu.deal_callback_func(dealInfo)
 
 
 def get_sell_infos():
