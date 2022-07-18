@@ -192,11 +192,11 @@ def 国债逆回购(ContextInfo, account=cst.account):
 
     if shiwan_手数 > 0:
         code = GC_001_code
-        log_and_send_im('卖出国债逆回购 {} 金额：{}万'.format(code, shiwan_cnt * 10))
+        log_and_send_im(f'卖出国债逆回购 {code} 金额：{shiwan_cnt * 10}万，手数: {shiwan_手数}')
         passorder(24, 1101, account, code, 5, -1, shiwan_手数, '国债逆回购', 1, '国债逆回购_gc001_oid', ContextInfo)
     if yiqian_手数 > 0:
         code = R_001_code
-        log_and_send_im('卖出国债逆回购 {} 金额：{}万'.format(code, fmt_float2str(yiqian_cnt / 10)))
+        log_and_send_im(f'卖出国债逆回购 {code} 金额：{yiqian_cnt / 10}万，手数: {shiwan_手数}')
         passorder(24, 1101, account, R_001_code, 5, -1, yiqian_手数, '国债逆回购', 1, '国债逆回购_r001_oid', ContextInfo)
     逆回购_finish_date = get_curr_date()
     g_逆回购_finish_date_dict.update({account: 逆回购_finish_date})
