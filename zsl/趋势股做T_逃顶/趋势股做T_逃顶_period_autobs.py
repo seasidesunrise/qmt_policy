@@ -253,7 +253,7 @@ def pass_qmt_funcs():
 
 
 def deal_callback(ContextInfo, dealInfo):
-    """ 当账号成交状态有变化时，会执行这个函数 """
+    """ 当账号成交状态有变化时， 会执行这个函数 """
     qu.deal_callback_func(dealInfo, 策略名称)
 
 
