@@ -46,7 +46,13 @@ def timerHandler(ContextInfo):
         rt_成交量放量dtime = get_dtime_by_datefield(row, 'rt_成交量放量dtime')
         period = get_str_by_strfield(row, 'period')  # 周期
         if period is None or period not in qu.period_list:
-            log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条策略忽略！！")
+            continue
+        if 观察起始日 is None:
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime 设置错误，请检查，此条策略忽略！！")
+            continue
+        elif 观察起始日 > get_curr_date():
+            print(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime: {观察起始日} 未到！跳过。。。")
             continue
 
         df = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', start_time=观察起始日.replace('-', ''))

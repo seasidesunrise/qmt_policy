@@ -138,7 +138,10 @@ def handlebar(ContextInfo):
 
         观察起始日 = str(row['观察起始日dtime'])[:10]
         print(f"{策略名称} 观察起始日: {观察起始日}")
-        if 观察起始日 > get_curr_date():
+        if 观察起始日 is None:
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime 设置错误，请检查，此条策略忽略！！")
+            continue
+        elif 观察起始日 > get_curr_date():
             print(f"{策略名称} 观察起始日: {观察起始日} 未到！跳过。。。")
             continue
 
