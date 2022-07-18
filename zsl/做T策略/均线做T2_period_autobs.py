@@ -91,7 +91,7 @@ def handlebar(ContextInfo):
                 卖出后买回价与卖出价的百分比 = get_num_by_numfield(row, '卖出后买回价与卖出价的百分比')
                 rt_买回价格 = 当前价格 * 卖出后买回价与卖出价的百分比 / 100
                 t_status = T_Type.已t出.value
-                update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', rt_买回价格='" + str(rt_买回价格) + "', 当前持股数='" + str(0) + "' " + where_clause
+                update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_买回价格='" + str(rt_买回价格) + "', rt_当前持股数='" + str(0) + "' " + where_clause
                 save_or_update_by_sql(update_sql)
 
             t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
@@ -107,7 +107,7 @@ def handlebar(ContextInfo):
                     qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买
 
                     t_status = T_Type.已买回.value
-                    update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', 当前持股数='" + str(买入股数) + "' " + where_clause
+                    update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause
                     save_or_update_by_sql(update_sql)
 
     d = ContextInfo.barpos

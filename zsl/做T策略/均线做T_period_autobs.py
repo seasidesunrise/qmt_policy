@@ -90,7 +90,7 @@ def handlebar(ContextInfo):
                 qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖
 
                 t_status = T_Type.已t出.value
-                update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', 当前持股数='" + str(0) + "' " + where_clause
+                update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(0) + "' " + where_clause
                 save_or_update_by_sql(update_sql)
                 continue
 
@@ -105,7 +105,7 @@ def handlebar(ContextInfo):
             qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买
 
             t_status = T_Type.已买回.value
-            update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', 当前持股数='" + str(买入股数) + "' " + where_clause
+            update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause
             save_or_update_by_sql(update_sql)
             continue
 
