@@ -247,7 +247,7 @@ def deal_callback(ContextInfo, dealInfo):
 
 
 def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=None):
-    cnt = 做t均线 if 止损均线 is None else max(做t均线, 止损均线)
+    cnt = 做t均线 if (止损均线 is None or 止损均线 >= 1000) else max(做t均线, 止损均线)
     df = ContextInfo.get_market_data(['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', count=int(cnt + 10))
     ma_colname = 'ma' + str(做t均线)
     df[ma_colname] = talib.MA(df['close'], 做t均线)
