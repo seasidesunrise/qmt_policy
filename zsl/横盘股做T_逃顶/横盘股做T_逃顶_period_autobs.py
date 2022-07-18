@@ -143,7 +143,7 @@ def handlebar(ContextInfo):
             continue
 
         if 是否做t:
-            df = get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 做t止损均线)
+            df = qu.get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 做t止损均线)
             curr_data = df.iloc[-1]
             当前价格 = curr_data['close']
             where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
