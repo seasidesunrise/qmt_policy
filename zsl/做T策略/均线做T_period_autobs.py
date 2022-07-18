@@ -42,7 +42,7 @@ def handlebar(ContextInfo):
         做t止损均线 = get_num_by_numfield(row, '做t止损均线')
         高于均线百分比卖出 = get_num_by_numfield(row, '高于均线百分比卖出')  # 如5，即表示高于均线5%卖出
         低于均线百分比买入 = get_num_by_numfield(row, '低于均线百分比买入')  # 如5，即表示低于均线5%买入
-        初始做t资金 = get_num_by_numfield(row, '初始做t资金')  # 当前做t支配的资金量
+        做t资金 = get_num_by_numfield(row, '做t资金')  # 当前做t支配的资金量
         rt_当前做t状态 = get_str_by_strfield(row, 'rt_当前做t状态')
         period = get_str_by_strfield(row, 'period')  # 周期
         if period is None or period not in qu.period_list:
@@ -80,7 +80,7 @@ def handlebar(ContextInfo):
             # 检查偏离均线幅度
             if (相比均线涨幅 >= 高于均线百分比卖出) and (rt_当前做t状态 == '' or rt_当前做t状态 == '已买回'):  # 做T动作：卖出
                 持仓可卖股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
-                做t卖出股数 = int(初始做t资金 / 当前价格 / 100) * 100
+                做t卖出股数 = int(做t资金 / 当前价格 / 100) * 100
                 卖出股数 = min(做t卖出股数, 持仓可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出， todo：当前持股数逻辑需要讨论修改，测试期间先忽略
                 if 卖出股数 == 0:
                     print(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}")
@@ -96,9 +96,9 @@ def handlebar(ContextInfo):
 
         t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
         if t出全部成交 and (相比均线涨幅 <= -低于均线百分比买入 < 0) and (rt_当前做t状态 == '' or rt_当前做t状态 == '已T出'):  # 做T动作：买回
-            买入股数 = int(初始做t资金 / 当前价格 / 100) * 100
+            买入股数 = int(做t资金 / 当前价格 / 100) * 100
             if 买入股数 < 100:
-                print(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。买入股数：{买入股数}, 做t资金: {初始做t资金}")
+                print(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。买入股数：{买入股数}, 做t资金: {做t资金}")
                 continue
             买入股数 = 100  # todo: 仓位大小需要
 
