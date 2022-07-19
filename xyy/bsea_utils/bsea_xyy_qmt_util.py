@@ -317,7 +317,8 @@ def stop_policy(策略名称):
 def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均线=None):
     止损均线_无效值 = 1000
     cnt = 做t均线 if (止损均线 is None or 止损均线 >= 止损均线_无效值) else max(做t均线, 止损均线)
-    df = ContextInfo.get_market_data(['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', count=int(cnt + 10))
+    endtime = get_curr_date().replace('-', '') + "150000"
+    df = ContextInfo.get_market_data(['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', count=int(cnt + 10), end_time=endtime)
     ma_colname = 'ma' + str(做t均线)
     df[ma_colname] = talib.MA(df['close'], 做t均线)
     if 止损均线 is not None and 止损均线 < 止损均线_无效值:
