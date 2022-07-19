@@ -33,7 +33,8 @@ def timerHandler(ContextInfo):
     sql_all_标的 = "SELECT * FROM " + table_t + " WHERE status='1' AND account_nick='" + str(cst.account_nick) + "'"
     all_df = get_df_from_table(sql_all_标的)
     if len(all_df) == 0:
-        print(f"{策略名称} {table_t} 有效标的为空，跳过")
+        log_and_send_im_with_ttl(f"{策略名称} {table_t} 有效标的为空，跳过")
+        return
 
     for index, row in all_df.iterrows():
         qmt_code = row['qmt_code']
@@ -41,14 +42,21 @@ def timerHandler(ContextInfo):
         观察起始日 = get_dtime_by_datefield(row, '观察起始日dtime')
         print(f"{策略名称} 观察起始日: {观察起始日}")
         是否做t = (get_num_by_numfield(row, '是否做t') == 1)
-        成交量放量股数阈值 = get_num_by_numfield(row, '成交量放量股数阈值')
+        成交量放量股数阈值 = get_num_by_numfield(row, '成交量放量股数阈值')  # 单位：万手
         rt_成交量放量dtime = get_dtime_by_datefield(row, 'rt_成交量放量dtime')
         period = get_str_by_strfield(row, 'period')  # 周期
         if period is None or period not in qu.period_list:
-            log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条配置忽略！！")
+            continue
+        if 观察起始日 is None:
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime 设置错误，请检查，此条策略忽略！！")
+            continue
+        elif 观察起始日 > get_curr_date():
+            print(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime: {观察起始日} 未到！跳过。。。")
             continue
 
-        df = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', start_time=观察起始日.replace('-', ''))
+        end_time = get_curr_date().replace('-', '') + "150000"
+        df = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', start_time=观察起始日.replace('-', ''), end_time=end_time)
         df['pre_close'] = df['close'].shift(1)
         df['high涨幅'] = 100 * (df['high'] - df['pre_close']) / df['pre_close']
         print(df)
@@ -57,7 +65,7 @@ def timerHandler(ContextInfo):
         ii = 0
         for index2, row2 in df.iterrows():
             ii += 1
-            volume = row2['volume'] / 10000  # 转为：万股
+            volume = row2['volume'] / 10000  # 转为：万手
             dt = str(index2)
             dt2 = dt[:4] + "-" + dt[4:6] + "-" + dt[6:8] + dt[8:]
 
@@ -113,6 +121,7 @@ def handlebar(ContextInfo):
     all_df = get_df_from_table(sql_all_标的)
     if len(all_df) == 0:
         print(f"{策略名称} 有效标的为空，跳过")
+        return
 
     for index, row in all_df.iterrows():
         qmt_code = row['qmt_code']
@@ -142,7 +151,7 @@ def handlebar(ContextInfo):
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime 设置错误，请检查，此条策略忽略！！")
             continue
         elif 观察起始日 > get_curr_date():
-            print(f"{策略名称} 观察起始日: {观察起始日} 未到！跳过。。。")
+            log_and_send_im_with_ttl(f"{策略名称} 观察起始日: {观察起始日} 未到！跳过，此条策略忽略", 7200)
             continue
 
         if 是否做t:
@@ -155,14 +164,11 @@ def handlebar(ContextInfo):
                 # todo:  如果还有未成交的单子，是否要在57分之前先撤单
                 卖出数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
                 if 卖出数量 == 0:
-                    key = qmt_code + "_" + get_curr_date() + "_zs"
-                    if g_data.get(key) is None:
-                        g_data.update({key: '1'})
-                        log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！")
+                    log_and_send_im_with_ttl(f"{策略名称} {table_t} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！")
                     continue
-                卖出数量 = 100  # todo：仓位，测试期间暂定100股
 
-                qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称)  # 核按钮卖
+                卖出数量 = 100  # todo：仓位，测试期间暂定100股
+                qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称)
 
                 save_or_update_by_sql("UPDATE " + table_t + " SET 是否做t='0', status='0' " + where_clause)
                 log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] 达到做t止损卖出条件，已下单清仓！！")
@@ -179,7 +185,7 @@ def handlebar(ContextInfo):
                         continue
                     卖出股数 = 100  # todo: 仓位，测试期间暂定100股
 
-                    qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称)  # 核按钮卖
+                    qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称)
 
                     t_status = T_Type.已t出.value
                     update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(0) + "' " + where_clause
@@ -189,12 +195,15 @@ def handlebar(ContextInfo):
                 if (相比均线涨幅 <= -低于均线百分比买入 < 0) and (rt_当前做t状态 == '' or rt_当前做t状态 == '已t出'):  # 做T动作：马上下单买回
                     t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
                     if not t出全部成交:
-                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] t出全部成交: {t出全部成交}, 买回动作失败", 600)
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] t出全部成交: {t出全部成交}, 等待卖出的单子成交", 600)
                         continue
 
-                    买入股数 = int(做t资金 / 当前价格 / 100) * 100
+                    账户可用资金 = qu.get_可用资金()
+                    账户资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
+                    做t资金买入股数 = int(做t资金 / 当前价格 / 100) * 100
+                    买入股数 = min(账户资金最多买入股数, 做t资金买入股数)
                     if 买入股数 < 100:
-                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。买入股数：{买入股数}, 做t资金: {做t资金}", 600)
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。账户资金最多买入股数：{账户资金最多买入股数}, 做t资金买入股数: {做t资金买入股数}")
                         continue
                     买入股数 = 100  # todo: 仓位，测试期间暂定100股
 
@@ -219,8 +228,7 @@ def handlebar(ContextInfo):
                 db可卖数量 = get_num_by_numfield(row, '跌破止损均线需卖出股数')
                 卖出数量 = min(db可卖数量, 持仓可卖数量)
                 if 卖出数量 == 0:
-                    ttl = 10 * 60  # 10分钟
-                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db可卖数量：{db可卖数量}, 持仓可卖股数: {持仓可卖股数}", ttl)
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db可卖数量：{db可卖数量}, 持仓可卖股数: {持仓可卖股数}")
                     continue
                 卖出数量 = 100  # todo: 暂设为100股
 

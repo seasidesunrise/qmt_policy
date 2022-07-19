@@ -86,6 +86,7 @@ def handlebar(ContextInfo):
                 t_status = T_Type.已t出.value
                 update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_买回价格='" + str(rt_买回价格) + "', rt_当前持股数='" + str(0) + "' " + where_clause
                 save_or_update_by_sql(update_sql)
+                continue
 
             if (rt_当前做t状态 == '' or rt_当前做t状态 == '已t出'):  # 做T动作：马上下单买回
                 t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
@@ -95,11 +96,11 @@ def handlebar(ContextInfo):
                 rt_买回价格 = get_num_by_numfield(row, 'rt_买回价格')
                 if 当前价格 <= rt_买回价格:  # 价格低于买回价格，下单买回
                     账户可用资金 = qu.get_可用资金()
-                    资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
+                    账户资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
                     做t资金买入股数 = int(做t资金 / 当前价格 / 100) * 100
-                    买入股数 = min(资金最多买入股数, 做t资金买入股数)
+                    买入股数 = min(账户资金最多买入股数, 做t资金买入股数)
                     if 买入股数 < 100:
-                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。账户资金最多买入股数：{资金最多买入股数}, 做t资金买入股数：{做t资金买入股数}, 做t资金: {做t资金}")
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。账户资金最多买入股数：{账户资金最多买入股数}, 做t资金买入股数：{做t资金买入股数}, 做t资金: {做t资金}")
                         continue
                     买入股数 = 100  # todo: 仓位，测试期间暂定100股
 

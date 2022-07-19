@@ -34,14 +34,14 @@ g_period = '1h'  # 设置周期：period支持5m, 15m, 30m, 1h, 1d, 1w, 1mon
 ############  人工指定部分结束 ###############
 
 g_countdown_latch = 8
-g_prepare_df = pd.DataFrame()  # 'code' code, '满足双暴跌买入条件': 1, 'pre_close': 8.5
+g_prepare_df = pd.DataFrame(columns=['qmt_code', '满足双暴跌买入预备条件', 'pre_close', 'name'])  # 'code' code, '满足双暴跌买入条件': 1, 'pre_close': 8.5
 g_今天下过的单_set = set()
 g_sell_委托单_num = 0
 g_code_set = set()
 
 
 def recheck_prepare_stocks(ContextInfo):
-    print(f'------$$$$$$ {策略名称} timerHandler计时器' + get_curr_date() + " " + get_curr_time())
+    print(f'------$$$$$$ {策略名称} timerHandler计时器 {get_curr_date()} {get_curr_time()}')
     global g_code_set
     global g_prepare_df
     global g_period
@@ -49,14 +49,13 @@ def recheck_prepare_stocks(ContextInfo):
     g_code_set = set()
 
     s = ContextInfo.get_stock_list_in_sector('双暴跌买入')
-    print(f"{策略名称} 双暴跌买入板块成分股：" + str(s))
+    print(f"{策略名称} 双暴跌买入板块成分股：{s}")
     g_code_set = set(s)
     print(f"{策略名称} g_code_set: {g_code_set}")
     print(f"{策略名称} g_code_list: {list(g_code_set)}")
 
-    zuotian_date = get_zuotian_date()
-
-    df_all = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=list(g_code_set), period=g_period, dividend_type='front', count=10)
+    endtime = get_curr_date().replace('-', '') + "150000"
+    df_all = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=list(g_code_set), period=g_period, dividend_type='front', count=10, end_time=endtime)
     print(df_all)
     hq_all_dict = {}
 
@@ -72,7 +71,7 @@ def recheck_prepare_stocks(ContextInfo):
         df['涨幅'] = 100 * (df['close'] - df['pre_close']) / df['pre_close']
         df['close低于ma5'] = df.apply(lambda x: 1 if (x['close'] <= x['ma5']) else 0, axis=1)
         print(df)
-        hq_all_dict.update({"code": qmt_code, "df": df})
+        hq_all_dict.update({"qmt_code": qmt_code, "df": df})
 
         pre1k_data = df.iloc[-2]
         pre2k_data = df.iloc[-3]
@@ -80,9 +79,9 @@ def recheck_prepare_stocks(ContextInfo):
             满足双暴跌买入预备条件 = True
             pre_close = pre1k_data['close']  # 设置pre1k收盘价
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] 满足双暴跌买入预备条件，开始监控择机买入， pre_close: {fmt_float2str(pre_close)}")
-            g_prepare_df = g_prepare_df.append({'qmt_code': qmt_code, '满足双暴跌买入预备条件': 满足双暴跌买入预备条件, 'pre_close': pre_close, 'name': name}, ignore_index=True)
+            g_prepare_df.loc[qmt_code] = {'qmt_code': qmt_code, '满足双暴跌买入预备条件': 满足双暴跌买入预备条件, 'pre_close': pre_close, 'name': name}
 
-    print(f"{策略名称} 第一、第二天满足条件，预备股池: {g_prepare_df}")
+    print(f"{策略名称} 第一、第二K满足条件，预备股池: {g_prepare_df}")
 
 
 def init(ContextInfo):
@@ -90,18 +89,15 @@ def init(ContextInfo):
     pass_qmt_funcs()
     ContextInfo.set_account(cst.account)
 
-    timer_startTime = get_curr_date() + "00:05:10"
+    timer_startTime = get_curr_date() + "06:05:10"
     ContextInfo.run_time("recheck_prepare_stocks", "20nSecond", timer_startTime)
 
 
 def handlebar(ContextInfo):
-    print('{策略名称} 这是 handlebar 中的 3秒一次的tick ~~~')
+    print(f'{策略名称} 这是 handlebar 中的 3秒一次的tick ~~~')
 
     global g_prepare_df
     global g_period
-    d = ContextInfo.barpos
-    realtime = ContextInfo.get_bar_timetag(d)
-    nowdate = timetag_to_datetime(realtime, '%Y-%m-%d %H:%M:%S')
 
     global g_countdown_latch
     g_countdown_latch -= 1
@@ -109,9 +105,10 @@ def handlebar(ContextInfo):
         g_countdown_latch = 8
         可用资金, 持仓df, obj_list = qu.get_stock_持仓列表(cst.account)
 
-    print(g_prepare_df)
     if len(g_prepare_df) == 0:
+        print(f"{策略名称} 有效标的为空，跳过")
         return
+    print(g_prepare_df)
 
     for index2, row2 in g_prepare_df.iterrows():
         qmt_code = row2['qmt_code']
@@ -119,7 +116,8 @@ def handlebar(ContextInfo):
         pre_close = row2['pre_close']
         name = row2['name']
 
-        df3 = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=g_period, dividend_type='front', count=1)
+        endtime = get_curr_date().replace('-', '') + "150000"
+        df3 = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=g_period, dividend_type='front', count=1, end_time=endtime)
         print(df3)
         if len(df3) > 0:
             curr_data = df3.iloc[0]
@@ -129,7 +127,7 @@ def handlebar(ContextInfo):
                 # 判断是否已买入
                 dtime_curr = get_curr_date()
 
-                select_sql = "SELECT * FROM " + buy_table + " WHERE code='" + qmt_code[:6] + "' AND dtime='" + dtime_curr + "' AND 策略='" + 策略名称 + "' AND status=1"
+                select_sql = "SELECT * FROM " + buy_table + " WHERE code='" + qmt_code[:6] + "' AND dtime='" + dtime_curr + "' AND 策略='" + 策略名称 + "' AND status=1 AND account_nick='" + cst.account_nick + "'"
                 select_df = get_df_from_table(select_sql)
                 if len(select_df) > 0:  # 已下过单
                     print(f"{策略名称} 已下过单，忽略: {select_df.iloc[0]}")
@@ -173,7 +171,7 @@ def handlebar(ContextInfo):
                         if curr_data['volume'] < curr_data['vol_ma5'] and pre1k_data['volume'] < pre1k_data['vol_ma5'] and pre2k_data['volume'] < pre2k_data['vol_ma5']:
                             vol_cond = True
                         if not vol_cond:
-                            print(f"{策略名称} vol均量线指标为: {curr_data}, 不满足连续3K低于5均限量，忽略")
+                            print(f"{策略名称} vol均量线指标为: {curr_data}, 不满足连续3K低于5均线量，忽略")
                             continue
 
                 可用资金 = qu.get_可用资金()
