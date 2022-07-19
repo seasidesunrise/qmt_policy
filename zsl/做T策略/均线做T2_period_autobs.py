@@ -29,6 +29,7 @@ def handlebar(ContextInfo):
     all_df = get_df_from_table(sql_all_标的)
     if len(all_df) == 0:
         print(f"{策略名称} {table_t} 有效标的为空，跳过")
+        return
 
     for index, row in all_df.iterrows():
         qmt_code = row['qmt_code']
