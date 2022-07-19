@@ -175,8 +175,10 @@ def handlebar(ContextInfo):
                     做t卖出股数 = int(做t资金 / 当前价格 / 100) * 100
                     卖出股数 = min(做t卖出股数, 持仓可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出， todo：当前持股数逻辑需要讨论修改，测试期间先忽略
                     if 卖出股数 == 0:
-                        print(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}")
+                        ttl = 10 * 60  # 10分钟
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}", ttl)
                         continue
+
                     卖出股数 = 100  # todo: 仓位，测试期间暂定100股
 
                     qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖
@@ -215,8 +217,10 @@ def handlebar(ContextInfo):
                 db可卖数量 = get_num_by_numfield(row, '跌破止损均线需卖出股数')
                 卖出数量 = min(db可卖数量, 持仓可卖数量)
                 if 卖出股数 == 0:
-                    print(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db可卖数量：{db可卖数量}, 持仓可卖股数: {持仓可卖股数}")
+                    ttl = 10 * 60  # 10分钟
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db可卖数量：{db可卖数量}, 持仓可卖股数: {持仓可卖股数}", ttl)
                     continue
+
                 卖出数量 = 100  # todo: 暂设为100股
 
                 qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖
@@ -231,8 +235,10 @@ def handlebar(ContextInfo):
                         持仓可卖数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
                         卖出数量 = min(上影线后需卖出股数, 持仓可卖数量)
                         if 卖出股数 == 0:
-                            print(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。上影线后需卖出股数：{上影线后需卖出股数}, 持仓可卖数量: {持仓可卖数量}")
+                            ttl = 10 * 60  # 10分钟
+                            log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。上影线后需卖出股数：{上影线后需卖出股数}, 持仓可卖数量: {持仓可卖数量}", ttl)
                             continue
+
                         卖出数量 = 100  # todo: 测试
 
                         qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖
