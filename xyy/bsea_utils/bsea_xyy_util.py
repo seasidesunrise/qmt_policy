@@ -44,7 +44,7 @@ def log_and_send_im(text):
         print("Unexpected error:", sys.exc_info()[0])
 
 
-def log_and_send_im_with_ttl(text, ttl):
+def log_and_send_im_with_ttl(text, ttl=600):
     """ ttl为秒数 """
     if cache.get(text) is not None:
         print(f"消息文本命中cache，防重发生效，跳过: {text}")

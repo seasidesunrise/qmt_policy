@@ -176,12 +176,12 @@ def 国债逆回购(ContextInfo, account=cst.account):
     global g_逆回购_finish_date_dict
     逆回购_finish_date = g_逆回购_finish_date_dict.get(account)
     if 逆回购_finish_date is not None and 逆回购_finish_date == get_curr_date():
-        print(f"已经完成国债逆回购: {g_逆回购_finish_date_dict}")
+        log_and_send_im_with_ttl(f"已经完成国债逆回购: {g_逆回购_finish_date_dict}", 600)
         return
-    print(f"国债逆回购: {g_逆回购_finish_date_dict}")
+    log_and_send_im(f"国债逆回购: {g_逆回购_finish_date_dict}")
     acct_info = get_trade_detail_data(account, 'stock', 'account')
     可用资金 = acct_info[0].m_dAvailable
-    log_and_send_im("帐户可用资金为：", 可用资金)
+    log_and_send_im("帐户可用资金为：" + 可用资金)
 
     shiwan_cnt = int(可用资金 / 100000)
     yiqian_cnt = int((可用资金 - 100000 * shiwan_cnt) / 1000)
