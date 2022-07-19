@@ -21,6 +21,7 @@ def handlebar(ContextInfo):
     all_df = get_df_from_table(sql_all_标的)
     if len(all_df) == 0:
         print(f"{策略名称} {table_t} 有效标的为空，跳过")
+        return
 
     print(all_df)
     curr_date = get_curr_date()
@@ -31,12 +32,12 @@ def handlebar(ContextInfo):
         pk_id = get_num_by_numfield(row, 'id')
         条件单类型 = get_str_by_strfield(row, '条件单类型')
         if 条件单类型 != 定价条件单.定价买入.value and 条件单类型 != 定价条件单.定价卖出.value:
-            print(f"{pk_id} 条件单类型: {条件单类型} 配置错误，请检查！")
+            log_and_send_im_with_ttl(f"{pk_id} 条件单类型: {条件单类型} 配置错误，请检查！")
             continue
 
         df = ContextInfo.get_market_data(fields=['volume', 'close'], stock_code=[qmt_code], period='1d', dividend_type='front', count=1)
         if len(df) == 0 or df.iloc[0]['volume'] == 0:  # 判断volume是为了过滤停牌
-            print(f"{策略名称} {qmt_code}[{name}] 获取行情数据失败，跳过")
+            log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 获取行情数据失败，跳过")
             continue
         curr_data = df.iloc[0]
         当前价格 = curr_data['close']
@@ -52,19 +53,19 @@ def handlebar(ContextInfo):
                 is_valid_买入配置 = True
 
             if not is_valid_买入配置:
-                log_and_send_im(f"{策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期}  {int(pk_id)}此条配置无效，请检查！当天跳过。")
+                log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期}  {int(pk_id)}此条配置无效，请检查！当天跳过。")
                 continue
             else:
                 if 当前价格 <= 买入价格:
                     账户可用资金 = qu.get_可用资金()
                     资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
                     买入股数 = min(买入数量, 资金最多买入股数)
-                    if 买入股数 == 0:
-                        print(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但买入股数为零。db买入股数：{买入数量}, 资金最多买入股数: {资金最多买入股数}")
+                    if 买入股数 < 100:
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但买入股数为零。db买入股数：{买入数量}, 资金最多买入股数: {资金最多买入股数}, 账户可用资金: {账户可用资金}")
                         continue
                     买入股数 = 100  # todo: 待删除
 
-                    qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买入
+                    qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称)
 
                     update_sql = "UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "'" + where_clause
                     save_or_update_by_sql(update_sql)
@@ -80,26 +81,21 @@ def handlebar(ContextInfo):
                 is_valid_卖出配置 = True
 
             if not is_valid_卖出配置:
-                log_and_send_im(f"{策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期} {int(pk_id)}此条配置无效，请检查！当天跳过。")
+                log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期} {int(pk_id)}此条配置无效，请检查！当天跳过。")
                 continue
             else:
                 if 当前价格 >= 卖出价格:
                     当前持股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
                     卖出股数 = min(卖出数量, 当前持股数)
-                    if 卖出股数 == 0:
-                        print(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db卖出股数：{卖出数量}, 持仓可卖股数: {当前持股数}")
+                    if 卖出股数 < 100:
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db卖出股数：{卖出数量}, 持仓可卖股数: {当前持股数}")
                         continue
                     卖出股数 = 100  # todo：待删除
 
-                    qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖出
+                    qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称)
 
                     update_sql = "UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "'" + where_clause
                     save_or_update_by_sql(update_sql)
-
-    d = ContextInfo.barpos
-    realtime = ContextInfo.get_bar_timetag(d)
-    nowdate = timetag_to_datetime(realtime, '%Y-%m-%d %H:%M:%S')
-    print(nowdate)
 
 
 def init(ContextInfo):
