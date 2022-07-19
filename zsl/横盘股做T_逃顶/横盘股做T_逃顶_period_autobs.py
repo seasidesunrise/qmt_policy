@@ -214,6 +214,9 @@ def handlebar(ContextInfo):
                 持仓可卖数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
                 db可卖数量 = get_num_by_numfield(row, '跌破止损均线需卖出股数')
                 卖出数量 = min(db可卖数量, 持仓可卖数量)
+                if 卖出股数 == 0:
+                    print(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db可卖数量：{db可卖数量}, 持仓可卖股数: {持仓可卖股数}")
+                    continue
                 卖出数量 = 100  # todo: 暂设为100股
 
                 qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖
@@ -227,6 +230,9 @@ def handlebar(ContextInfo):
                         上影线后需卖出股数 = get_num_by_numfield(row, '上影线后需卖出股数')
                         持仓可卖数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
                         卖出数量 = min(上影线后需卖出股数, 持仓可卖数量)
+                        if 卖出股数 == 0:
+                            print(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。上影线后需卖出股数：{上影线后需卖出股数}, 持仓可卖数量: {持仓可卖数量}")
+                            continue
                         卖出数量 = 100  # todo: 测试
 
                         qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖
