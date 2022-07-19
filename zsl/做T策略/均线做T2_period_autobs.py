@@ -8,7 +8,7 @@
 2、卖出后以买入价的97%买回；
 3、跌破60均线止损全部卖出;
 4、兼容各种period：'5m', '15m', '30m', '1h', '1d', '1w', '1mon'
-5、买入、卖出，均采用核按钮下单（大资金遇到小股票谨慎使用）
+5、买入、卖出，均采用2%滑点下单，没成交就没成交了
 
 todo：
 1、止损时，是否要先做撤单；
@@ -21,8 +21,6 @@ from bsea_utils.bsea_xyy_util import *
 策略名称 = '均线做T2'
 table_t = "bsea_做t_均线2_period"
 
-g_data = {}
-
 
 def handlebar(ContextInfo):
     print(f'{策略名称} 这是 handlebar 中的 3秒一次的tick ~~~')
@@ -32,14 +30,12 @@ def handlebar(ContextInfo):
     if len(all_df) == 0:
         print(f"{策略名称} {table_t} 有效标的为空，跳过")
 
-    global g_data
     for index, row in all_df.iterrows():
         qmt_code = row['qmt_code']
         name = qu.get_name_by_qmtcode(ContextInfo, qmt_code)
 
         做t均线 = get_num_by_numfield(row, '做t均线')
         做t止损均线 = get_num_by_numfield(row, '做t止损均线')
-        ma_colname = 'ma' + str(做t均线)
         高于均线百分比卖出 = get_num_by_numfield(row, '高于均线百分比卖出')  # 如5，即表示高于均线5%卖出
         做t资金 = get_num_by_numfield(row, '做t资金')  # 当前做t支配的资金量
         rt_当前做t状态 = get_str_by_strfield(row, 'rt_当前做t状态')
@@ -63,17 +59,14 @@ def handlebar(ContextInfo):
             # todo:  如果还有未成交的单子，是否要在57分之前先撤单
             卖出数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
             if 卖出数量 == 0:
-                key = qmt_code + "_" + get_curr_date() + "_zs"
-                if g_data.get(key) is None:
-                    g_data.update({key: '1'})
-                    log_and_send_im(f"{策略名称} {table_t} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！")
+                log_and_send_im_with_ttl(f"{策略名称} {table_t} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！")
                 continue
 
             卖出数量 = 100  # todo：仓位，测试期间暂定100股
             qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称)
 
             save_or_update_by_sql("UPDATE " + table_t + " SET status='0' " + where_clause)
-            log_and_send_im(f"{策略名称} {qmt_code} {name} 达到止损卖出条件，已下单清仓！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，已下单清仓！！")
         else:
             相比均线涨幅 = curr_data['相比均线涨幅']
             if (相比均线涨幅 >= 高于均线百分比卖出 > 0) and (rt_当前做t状态 == '' or rt_当前做t状态 == '已买回'):  # 做T动作：卖出
@@ -81,8 +74,7 @@ def handlebar(ContextInfo):
                 做t卖出股数 = int(做t资金 / 当前价格 / 100) * 100
                 卖出股数 = min(做t卖出股数, 持仓可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出， todo：当前持股数逻辑需要讨论修改，测试期间先忽略
                 if 卖出股数 == 0:
-                    ttl = 10 * 60  # 10分钟
-                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}", ttl)
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}")
                     continue
                 卖出股数 = 100  # todo: 仓位，测试期间暂定100股
 
@@ -94,17 +86,19 @@ def handlebar(ContextInfo):
                 update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_买回价格='" + str(rt_买回价格) + "', rt_当前持股数='" + str(0) + "' " + where_clause
                 save_or_update_by_sql(update_sql)
 
-
             if (rt_当前做t状态 == '' or rt_当前做t状态 == '已t出'):  # 做T动作：马上下单买回
                 t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
                 if not t出全部成交:
-                    print(f"{策略名称} {qmt_code}[{name}] t出全部成交: {t出全部成交}")
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] t出全部成交: {t出全部成交}, 等待卖出的单子成交", 30)
                     continue
                 rt_买回价格 = get_num_by_numfield(row, 'rt_买回价格')
                 if 当前价格 <= rt_买回价格:  # 价格低于买回价格，下单买回
-                    买入股数 = int(做t资金 / 当前价格 / 100) * 100
+                    账户可用资金 = qu.get_可用资金()
+                    资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
+                    做t资金买入股数 = int(做t资金 / 当前价格 / 100) * 100
+                    买入股数 = min(资金最多买入股数, 做t资金买入股数)
                     if 买入股数 < 100:
-                        print(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。买入股数：{买入股数}, 做t资金: {做t资金}")
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。账户资金最多买入股数：{资金最多买入股数}, 做t资金买入股数：{做t资金买入股数}, 做t资金: {做t资金}")
                         continue
                     买入股数 = 100  # todo: 仓位，测试期间暂定100股
 
@@ -113,11 +107,7 @@ def handlebar(ContextInfo):
                     t_status = T_Type.已买回.value
                     update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause
                     save_or_update_by_sql(update_sql)
-
-    d = ContextInfo.barpos
-    realtime = ContextInfo.get_bar_timetag(d)
-    nowdate = timetag_to_datetime(realtime, '%Y-%m-%d %H:%M:%S')
-    print(nowdate)
+                    continue
 
 
 def init(ContextInfo):
