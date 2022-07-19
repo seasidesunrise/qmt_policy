@@ -160,14 +160,11 @@ def handlebar(ContextInfo):
                 # todo:  如果还有未成交的单子，是否要在57分之前先撤单
                 卖出数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
                 if 卖出数量 == 0:
-                    key = qmt_code + "_" + get_curr_date() + "_zs"
-                    if g_data.get(key) is None:
-                        g_data.update({key: '1'})
-                        log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！")
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！", 60000)
                     continue
                 卖出数量 = 100  # todo：仓位，测试期间暂定100股
 
-                qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖
+                qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称)
 
                 save_or_update_by_sql("UPDATE " + table_t + " SET 是否做t='0', status='0' " + where_clause)
                 log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到做t止损卖出条件，已下单清仓！！")
@@ -180,12 +177,11 @@ def handlebar(ContextInfo):
                     做t卖出股数 = int(做t资金 / 当前价格 / 100) * 100
                     卖出股数 = min(做t卖出股数, 持仓可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出， todo：当前持股数逻辑需要讨论修改，测试期间先忽略
                     if 卖出股数 == 0:
-                        ttl = 10 * 60  # 10分钟
-                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}", ttl)
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}", 600)
                         continue
                     卖出股数 = 100  # todo: 仓位，测试期间暂定100股
 
-                    qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖
+                    qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称)
 
                     卖出后买回价与卖出价的百分比 = get_num_by_numfield(row, '卖出后t回买入价与卖出价百分比')
                     rt_买回价格 = 当前价格 * 卖出后买回价与卖出价的百分比 / 100
@@ -194,17 +190,20 @@ def handlebar(ContextInfo):
                     save_or_update_by_sql(update_sql)
                     continue
 
-                t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
-                if t出全部成交 and (rt_当前做t状态 == '' or rt_当前做t状态 == '已t出'):  # 做T动作：马上下单买回
+                if (rt_当前做t状态 == '' or rt_当前做t状态 == '已t出'):  # 做T动作：马上下单买回
+                    t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
+                    if not t出全部成交:
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] t出全部成交: {t出全部成交}, 买回动作失败", 600)
+                        continue
                     rt_买回价格 = get_num_by_numfield(row, 'rt_买回价格')
                     if 当前价格 <= rt_买回价格:  # 价格低于买回价格，下单买回
                         买入股数 = int(做t资金 / 当前价格 / 100) * 100
                         if 买入股数 < 100:
-                            print(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。买入股数：{买入股数}, 做t资金: {做t资金}")
+                            log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。买入股数：{买入股数}, 做t资金: {做t资金}", 600)
                             continue
                         买入股数 = 100  # todo: 仓位，测试期间暂定100股
 
-                        qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买
+                        qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略名称)  # 核按钮买
 
                         t_status = T_Type.已买回.value
                         update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause
@@ -229,7 +228,7 @@ def handlebar(ContextInfo):
                     continue
                 可卖数量 = 100  # todo: 暂设为100股
 
-                qu.he_sell_stock(ContextInfo, qmt_code, name, 可卖数量, 策略名称)  # 核按钮卖
+                qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 可卖数量, 策略名称)  # 核按钮卖
 
                 save_or_update_by_sql("UPDATE " + table_t + " SET status='0' " + where_clause)
                 log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，已下单清仓！！")
@@ -245,7 +244,7 @@ def handlebar(ContextInfo):
                             continue
                         卖出数量 = 100  # todo: 测试
 
-                        qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖
+                        qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称)  # 核按钮卖
                         save_or_update_by_sql("UPDATE " + table_t + " SET rt_上影线后已触发卖出='1' WHERE qmt_code='" + qmt_code + "'")
 
 

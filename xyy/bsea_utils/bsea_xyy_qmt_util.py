@@ -23,6 +23,7 @@ g_今天下过的单_dict = {}  # 格式：策略-set
 g_buy_委托单_num_dict = g_sell_委托单_num_dict = {}  # 格式：策略-num
 
 period_list = ['1m', '3m', '5m', '15m', '30m', '1h', '1d', '1w', '1mon']
+small_flt = 1 / 10000 / 10000
 
 
 def is_当天一字板_by_qmt(ContextInfo, qmt_code, pre_close):
@@ -256,10 +257,21 @@ def buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略):
         passorder(23, 1101, cst.account, qmt_code, 11, 买入价格, 买入股数, 策略, 1, 买单_unique_str, ContextInfo)  # 买入
 
 
-def he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略):
+def buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略):
     """ 核按钮买入下单 """
-    当日涨停价, 当日跌停价 = get_涨停_跌停价_by_qmt(ContextInfo, qmt_code)
-    买入价格 = 当日涨停价
+    if qmt_code.startswith('688') or qmt_code.startswith('3'):
+        # 取当前价
+        当前价格 = get_curr_price(ContextInfo, qmt_code)
+        buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略)
+    else:
+        当日涨停价, 当日跌停价 = get_涨停_跌停价_by_qmt(ContextInfo, qmt_code)
+        买入价格 = 当日涨停价
+        buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略)
+
+
+def buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略):
+    买入价格 = (1 + 0.019) * 当前价格
+    买入价格 = round(买入价格 + small_flt, 2)
     buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略)
 
 
@@ -282,9 +294,21 @@ def sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略):
     passorder(24, 1101, cst.account, qmt_code, 11, 卖出价格, 卖出数量, 策略, 1, sell_order_id, ContextInfo)  # 卖出
 
 
-def he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略):
-    当日涨停价, 当日跌停价 = get_涨停_跌停价_by_qmt(ContextInfo, qmt_code)
-    卖出价格 = 当日跌停价
+def sell_stock_he(ContextInfo, qmt_code, name, 卖出数量, 策略):
+    if qmt_code.startswith('688') or qmt_code.startswith('3'):
+        # 取当前价
+        当前价格 = get_curr_price(ContextInfo, qmt_code)
+        sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略)
+    else:
+        当日涨停价, 当日跌停价 = get_涨停_跌停价_by_qmt(ContextInfo, qmt_code)
+        卖出价格 = 当日跌停价
+        sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略)
+
+
+def sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略):
+    卖出价格1 = (1 - 0.019) * 当前价格
+    卖出价格 = round(卖出价格1 - small_flt, 2)
+
     sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略)
 
 
@@ -327,3 +351,12 @@ def get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 止损均
     df['涨幅'] = 100 * (df['close'] - df['pre_close']) / df['pre_close']
     df['相比均线涨幅'] = 100 * (df['close'] - df[ma_colname]) / df[ma_colname]
     return df
+
+
+def get_curr_price(ContextInfo, qmt_code):
+    endtime = get_curr_date().replace('-', '') + "150000"
+    df = ContextInfo.get_market_data(['volume', 'close'], stock_code=[qmt_code], period='1d', dividend_type='front', count=1, end_time=endtime)
+    close = None
+    if len(df) > 0:
+        close = df.iloc[0]['close']
+    return close

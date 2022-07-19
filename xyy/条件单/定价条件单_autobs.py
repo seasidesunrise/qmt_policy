@@ -64,7 +64,7 @@ def handlebar(ContextInfo):
                         continue
                     买入股数 = 100  # todo: 待删除
 
-                    qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买入
+                    qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买入
 
                     update_sql = "UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "'" + where_clause
                     save_or_update_by_sql(update_sql)
@@ -91,7 +91,7 @@ def handlebar(ContextInfo):
                         continue
                     卖出股数 = 100  # todo：待删除
 
-                    qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖出
+                    qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖出
 
                     update_sql = "UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "'" + where_clause
                     save_or_update_by_sql(update_sql)

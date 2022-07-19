@@ -69,7 +69,7 @@ def handlebar(ContextInfo):
                 continue
 
             卖出数量 = 100  # todo：应该全部卖掉
-            qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖出
+            qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖出
 
             save_or_update_by_sql("UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "' WHERE qmt_code='" + qmt_code + "'")
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] 卖出数量: {卖出数量} 达到止损卖出条件，已清仓！！")
@@ -79,7 +79,7 @@ def handlebar(ContextInfo):
                 买入股数 = int(初始做t资金 / 当前价格 / 100) * 100
                 买入股数 = 100  # todo: 仓位大小需要
 
-                qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买入
+                qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买入
 
                 t_status = T_Type.已买回.name
                 update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "', lastmodified='" + get_lastmodified() + "'" + where_clause
@@ -95,7 +95,7 @@ def handlebar(ContextInfo):
                     continue
                 卖出股数 = 100  # todo: 仓位大小需要
 
-                qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖出
+                qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖出
 
                 t_status = T_Type.已t出.name
                 update_sql = "UPDATE " + table_t + " SET 当前做t状态='" + t_status + "', rt_当前持股数='" + str(0) + "', lastmodified='" + get_lastmodified() + "'" + where_clause

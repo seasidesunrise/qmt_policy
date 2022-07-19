@@ -70,7 +70,7 @@ def handlebar(ContextInfo):
                 continue
 
             卖出数量 = 100  # todo：仓位，测试期间暂定100股
-            qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 核按钮卖
+            qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称)
 
             save_or_update_by_sql("UPDATE " + table_t + " SET status='0' " + where_clause)
             log_and_send_im(f"{策略名称} {qmt_code} {name} 达到止损卖出条件，已下单清仓！！")
@@ -86,7 +86,7 @@ def handlebar(ContextInfo):
                     continue
                 卖出股数 = 100  # todo: 仓位，测试期间暂定100股
 
-                qu.he_sell_stock(ContextInfo, qmt_code, name, 卖出股数, 策略名称)  # 核按钮卖
+                qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称)
 
                 卖出后买回价与卖出价的百分比 = get_num_by_numfield(row, '卖出后买回价与卖出价的百分比')
                 rt_买回价格 = 当前价格 * 卖出后买回价与卖出价的百分比 / 100
@@ -108,7 +108,7 @@ def handlebar(ContextInfo):
                         continue
                     买入股数 = 100  # todo: 仓位，测试期间暂定100股
 
-                    qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买
+                    qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略名称)  # 核按钮买
 
                     t_status = T_Type.已买回.value
                     update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause

@@ -182,7 +182,7 @@ def handlebar(ContextInfo):
                 买入股数 = 100 * int(买入资金 / 买入价格 / 100)
                 买入股数 = 100  # todo：测试用，最大买入数量100股
 
-                qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)
+                qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
                 log_and_send_im(f"{策略名称} {name}[{qmt_code}]达到第三天下跌阈值{g_curr下跌阈值}%，委托买入，下单金额: {买入资金}, 委托价格：核按钮买入, 买入股数： {买入股数}")
 
                 # insert到已买入表，留作日志用
@@ -223,7 +223,7 @@ def handlebar(ContextInfo):
             if 卖出数量 <= 0:
                 log_and_send_im(f"{策略名称} {qmt_code}当前持仓量：{当前持仓量}, 可卖数量为: {卖出数量}, 无法卖出！！！")
             else:
-                qu.he_sell_stock(ContextInfo, code, name, 卖出数量, 策略名称)  # 放到前面去设置'是否卖出'=1
+                qu.sell_stock_he_2p(ContextInfo, code, name, 卖出价格, 卖出数量, 策略名称)  # 放到前面去设置'是否卖出'=1
 
 
 def deal_callback(ContextInfo, dealInfo):

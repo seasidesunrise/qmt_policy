@@ -50,7 +50,7 @@ def timerHandler(ContextInfo):
                 if len(tmpdf):
                     tmpdata = tmpdf.iloc[0]
                     可卖数量 = tmpdata['可卖数量']
-                    qu.he_sell_stock(ContextInfo, qmt_code, name, 可卖数量, 策略名称)  # 核按钮卖出
+                    qu.sell_stock_he(ContextInfo, qmt_code, name, 可卖数量, 策略名称)  # 核按钮卖出
                     save_or_update_by_sql("UPDATE " + bsea_sell_table_t + " SET status=0 WHERE qmt_code='" + qmt_code + "' AND dtime='" + str(curr_date) + "' AND 策略='" + 策略 + "'")
 
     if curr_time > '09:25:20' and curr_time < '09:30:00':  # 买入
