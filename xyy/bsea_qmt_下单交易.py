@@ -27,8 +27,9 @@ g_一字板_df = pd.DataFrame()
 
 
 def timerHandler(ContextInfo):
-    curr_time = get_curr_time()
     curr_date = get_curr_date()
+    curr_time = get_curr_time()
+    curr_dtime = curr_date + " " + curr_time
 
     global g_一字板_df
     print(f'------$$$$$$ {策略名称} timerHandler计时器 {curr_date} {curr_time}')
@@ -38,7 +39,7 @@ def timerHandler(ContextInfo):
         sell_df2 = get_df_from_table("SELECT * FROM " + bsea_sell_table_t + " WHERE sell_dtime='" + get_curr_date() + "' AND 开盘卖出=1 AND status=1 ORDER BY 策略 ASC, 子策略 ASC")
         print(sell_df2)
         if len(sell_df2) == 0:
-            print(f"{策略名称} 无 昨日收盘跌停，今日开盘卖出 的标的")
+            print(f"{curr_dtime} {策略名称} 无 昨日收盘跌停，今日开盘卖出 的标的")
         else:
             可用资金, 持仓df, obj_list = qu.get_stock_持仓列表()
             可卖持仓df = 持仓df[持仓df['可卖数量'] > 0].copy()
@@ -61,7 +62,7 @@ def timerHandler(ContextInfo):
             df = get_df_from_table("SELECT * FROM " + bsea_buy_table_t + " WHERE dtime='" + curr_date + "' AND status=1 ORDER BY 策略 ASC, 推荐理由 ASC")
             print(df)
             if len(df) == 0:
-                log_and_send_im_with_ttl(策略名称 + " " + curr_date + " 今日无xg结果！！！", 60)
+                log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} 今日无xg结果！！！", 60)
             else:
                 for index, row in df.iterrows():
                     name = row['name']
@@ -83,7 +84,7 @@ def timerHandler(ContextInfo):
                 pre_close = row['pre_close']
                 一字板, 涨停价 = qu.is_当天一字板_by_qmt(ContextInfo, qmt_code, pre_close)
                 if 一字板:
-                    log_and_send_im_with_ttl(策略名称 + " " + code + " 开盘顶一字板（如一直未开板就持有，开板就砸盘）", 60)
+                    log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {code} 开盘顶一字板（如一直未开板就持有，开板就砸盘）", 60)
                     g_一字板_df = g_一字板_df.append({'code': code, 'qmt_code': qmt_code, 'name': name, '涨停价': 涨停价}, ignore_index=True)
 
     if (curr_time >= '09:30:00' and curr_time < '11:33:00') or (curr_time >= '12:57:00' and curr_time < '15:03:00'):  # 卖出
@@ -104,14 +105,14 @@ def timerHandler(ContextInfo):
 
             # 计算当日涨停、跌停价
             当日涨停价, 当日跌停价 = qu.get_涨停_跌停价_by_qmt(ContextInfo, qmt_code)
-            print(f"{策略名称} {code}[{name}], pre_close: {pre_close}, 涨停价: {当日涨停价}, 跌停价: {当日跌停价}")
+            print(f"{curr_dtime} {策略名称} {code}[{name}], pre_close: {pre_close}, 涨停价: {当日涨停价}, 跌停价: {当日跌停价}")
             tmpdf = 可卖持仓df[可卖持仓df['code'] == code].copy()
             if len(tmpdf) > 0:
                 tmpdata = tmpdf.iloc[0]
                 当前价 = tmpdata['当前价']
                 可卖数量 = tmpdata['可卖数量']
                 当日涨幅 = 100 * (当前价 - pre_close) / pre_close
-                print(f"{策略名称} {code}[{name}] 当前价: {fmt_float2str(当前价)}, 当前涨幅: {fmt_float2str(当日涨幅)}")
+                print(f"{curr_dtime} {策略名称} {code}[{name}] 当前价: {fmt_float2str(当前价)}, 当前涨幅: {fmt_float2str(当日涨幅)}")
 
                 if 可卖数量 > 0:
                     # 查看是否一字板的情况
@@ -188,17 +189,21 @@ def get_sell_infos():
 
 def is_竞价开关_prepared():
     """ 读配置表，是否准备好买入数据 """
+    curr_date = get_curr_date()
+    curr_time = get_curr_time()
+    curr_dtime = curr_date + " " + curr_time
+
     is_prepared = False
 
     conf_sql = "SELECT * FROM xyy_config WHERE conf='竞价自动下单'"
     conf_df = get_df_from_table(conf_sql)
     if len(conf_df) == 0:
-        log_and_send_im(f"{策略名称} 无竞价自动下单配置，请检查xyy_config表对应的配置项")
+        log_and_send_im(f"{curr_dtime} {策略名称} 无竞价自动下单配置，请检查xyy_config表对应的配置项")
         is_prepared = False
     else:
         conf_data = conf_df.iloc[0]
         if conf_data['val'] != '1':
-            log_and_send_im(f"{策略名称} 竞价配置数据未准备好，请等待xg程序将'竞价自动下单'对应的val值设置为1...")
+            log_and_send_im(f"{curr_dtime} {策略名称} 竞价配置数据未准备好，请等待xg程序将'竞价自动下单'对应的val值设置为1...")
             is_prepared = False
         else:
             is_prepared = True

@@ -14,18 +14,19 @@ from bsea_utils.bsea_xyy_util import *
 
 
 def timerHandler(ContextInfo):
-    curr_time = get_curr_time()
     curr_date = get_curr_date()
+    curr_time = get_curr_time()
+    curr_dtime = curr_date + " " + curr_time
 
     print(f'------$$$$$$ {策略名称} timerHandler计时器 {curr_date} {curr_time}')
 
     if (curr_time >= '15:03:00' and curr_time < '15:33:00'):  # 全量资金all in国债逆回购1天期, 有防重复下单功能，实际钱不够也不可能重复买入。逆回购交易时间延长到15:30
         qu.国债逆回购(ContextInfo, cst.account)
-        print(f"{策略名称} 已收盘, sleep 30s")
+        print(f"{curr_dtime} {策略名称} 已收盘, sleep 30s")
         time.sleep(30)
 
     if curr_time >= '15:33:00':  # 已收盘
-        print(f"{策略名称} 已收盘, sleep 300s")
+        print(f"{curr_dtime} {策略名称} 已收盘, sleep 300s")
         time.sleep(600)
 
 
