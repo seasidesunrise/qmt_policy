@@ -94,25 +94,29 @@ def handlebar(ContextInfo):
                 save_or_update_by_sql(update_sql)
                 continue
 
-        t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
-        if t出全部成交 and (相比均线涨幅 <= -低于均线百分比买入 < 0) and (rt_当前做t状态 == '' or rt_当前做t状态 == '已T出'):  # 做T动作：买回
-            买入股数 = int(做t资金 / 当前价格 / 100) * 100
-            if 买入股数 < 100:
-                print(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。买入股数：{买入股数}, 做t资金: {做t资金}")
+            if (相比均线涨幅 <= -低于均线百分比买入 < 0) and (rt_当前做t状态 == '' or rt_当前做t状态 == '已T出'):  # 做T动作：买回
+                t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
+                if not t出全部成交:
+                    print(f"{策略名称} {qmt_code}[{name}] t出全部成交: {t出全部成交}")
+                    continue
+
+                买入股数 = int(做t资金 / 当前价格 / 100) * 100
+                if 买入股数 < 100:
+                    print(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。买入股数：{买入股数}, 做t资金: {做t资金}")
+                    continue
+                买入股数 = 100  # todo: 仓位大小需要
+
+                qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买
+
+                t_status = T_Type.已买回.value
+                update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause
+                save_or_update_by_sql(update_sql)
                 continue
-            买入股数 = 100  # todo: 仓位大小需要
 
-            qu.he_buy_stock(ContextInfo, qmt_code, name, 买入股数, 策略名称)  # 核按钮买
-
-            t_status = T_Type.已买回.value
-            update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause
-            save_or_update_by_sql(update_sql)
-            continue
-
-    d = ContextInfo.barpos
-    realtime = ContextInfo.get_bar_timetag(d)
-    nowdate = timetag_to_datetime(realtime, '%Y-%m-%d %H:%M:%S')
-    print(nowdate)
+    # d = ContextInfo.barpos
+    # realtime = ContextInfo.get_bar_timetag(d)
+    # nowdate = timetag_to_datetime(realtime, '%Y-%m-%d %H:%M:%S')
+    # print(nowdate)
 
 
 def init(ContextInfo):

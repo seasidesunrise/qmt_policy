@@ -93,8 +93,12 @@ def handlebar(ContextInfo):
                 update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_买回价格='" + str(rt_买回价格) + "', rt_当前持股数='" + str(0) + "' " + where_clause
                 save_or_update_by_sql(update_sql)
 
-            t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
-            if t出全部成交 and (rt_当前做t状态 == '' or rt_当前做t状态 == '已t出'):  # 做T动作：马上下单买回
+
+            if (rt_当前做t状态 == '' or rt_当前做t状态 == '已t出'):  # 做T动作：马上下单买回
+                t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
+                if not t出全部成交:
+                    print(f"{策略名称} {qmt_code}[{name}] t出全部成交: {t出全部成交}")
+                    continue
                 rt_买回价格 = get_num_by_numfield(row, 'rt_买回价格')
                 if 当前价格 <= rt_买回价格:  # 价格低于买回价格，下单买回
                     买入股数 = int(做t资金 / 当前价格 / 100) * 100
