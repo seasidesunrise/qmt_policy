@@ -92,7 +92,7 @@ def timerHandler(ContextInfo):
                 if 上影线 / 实体 > 上影线长度与实体倍数 > 0 and row2['high涨幅'] > 上影线最高价涨幅 > 0 and dt2 >= rt_成交量放量dtime:  # 上影线比例
                     rt_上影线dtime = dt[:4] + "-" + dt[4:6] + "-" + dt[6:8] + dt[8:]
 
-                    key = qmt_code + "_" + rt_上影线dtime + "_上影线"
+                    key = qmt_code + "_上影线"
                     if g_data.get(key) is None:
                         g_data.update({key: '1'})
                         上影线出现后卖出价与上影线最高价百分比 = get_num_by_numfield(row, '上影线出现后卖出价与上影线最高价百分比')
