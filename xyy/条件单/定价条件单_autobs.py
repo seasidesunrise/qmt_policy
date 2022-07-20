@@ -32,6 +32,7 @@ def handlebar(ContextInfo):
     for index, row in all_df.iterrows():
         qmt_code = row['qmt_code']
         name = qu.get_name_by_qmtcode(ContextInfo, qmt_code)
+        买入最小股数 = get_买入最小股数_by_qmt_code(qmt_code)
 
         pk_id = get_num_by_numfield(row, 'id')
         条件单类型 = get_str_by_strfield(row, '条件单类型')
@@ -53,7 +54,7 @@ def handlebar(ContextInfo):
             买入截止有效期db = get_dtime_by_datefield(row, '交易截止日期')
             买入截止有效期 = 买入截止有效期db if 买入截止有效期db is not None else curr_date
             is_valid_买入配置 = False
-            if 买入价格 > 0 and 买入数量 >= 100 and 买入截止有效期 >= curr_date:
+            if 买入价格 > 0 and 买入数量 >= 买入最小股数 and 买入截止有效期 >= curr_date:
                 is_valid_买入配置 = True
 
             if not is_valid_买入配置:
@@ -64,10 +65,10 @@ def handlebar(ContextInfo):
                     账户可用资金 = qu.get_可用资金()
                     资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
                     买入股数 = min(买入数量, 资金最多买入股数)
-                    if 买入股数 < 100:
+                    if 买入股数 < 买入最小股数:
                         log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但买入股数为零。db买入股数：{买入数量}, 资金最多买入股数: {资金最多买入股数}, 账户可用资金: {账户可用资金}")
                         continue
-                    买入股数 = 100  # todo: 待删除
+                    买入股数 = 买入最小股数  # todo: 待删除
 
                     qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称)
 

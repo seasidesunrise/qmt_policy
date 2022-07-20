@@ -36,7 +36,7 @@ def handlebar(ContextInfo):
     for index, row in all_df.iterrows():
         qmt_code = row['qmt_code']
         name = qu.get_name_by_qmtcode(ContextInfo, qmt_code)
-
+        买入最小股数 = get_买入最小股数_by_qmt_code(qmt_code)
         price_high = get_num_by_numfield(row, 'price_high')
         price_low = get_num_by_numfield(row, 'price_low')
         price_zs = get_num_by_numfield(row, 'price_zs')
@@ -66,10 +66,10 @@ def handlebar(ContextInfo):
             where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
             if (rt_当前做t状态 == '' or rt_当前做t状态 == '已T出') and (price_zs < 当前价格 <= price_low):  # 刚开始，或已经卖； 当价格跌到买入价位置，执行'买回'动作
                 买入股数 = int(做t资金 / 当前价格 / 100) * 100
-                if 买入股数 < 100:
+                if 买入股数 < 买入最小股数:
                     log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 买入股数 不足100股，做t资金：{做t资金}")
                     continue
-                买入股数 = 100  # todo: 仓位大小需要
+                买入股数 = 买入最小股数  # todo: 仓位大小需要
 
                 qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称)
 
