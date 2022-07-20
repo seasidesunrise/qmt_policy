@@ -12,12 +12,13 @@ from enum import Enum
 
 import pandas as pd
 import requests
+from cacheout import Cache
 from pandas import NaT
 
 import bsea_cst as cst
-from cacheout import Cache
 
 cache = Cache(maxsize=10000, timer=time.time, default=None)  # defaults
+
 
 class 定价条件单(Enum):
     定价买入 = '定价买入'
@@ -189,3 +190,10 @@ def check_is_盘中_or_临近(curr_time=None):
         return True
     else:
         return False
+
+
+def get_买入最小股数_by_qmt_code(qmt_code):
+    if qmt_code.startswith('688'):
+        return 200
+    else:
+        return 100
