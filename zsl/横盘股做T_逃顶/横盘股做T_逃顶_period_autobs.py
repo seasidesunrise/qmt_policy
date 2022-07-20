@@ -130,6 +130,7 @@ def handlebar(ContextInfo):
     for index, row in all_df.iterrows():
         qmt_code = row['qmt_code']
         name = qu.get_name_by_qmtcode(ContextInfo, qmt_code)
+        买入最小股数 = get_买入最小股数_by_qmt_code(qmt_code)
 
         做t均线 = get_num_by_numfield(row, '做t均线')
         做t止损均线 = get_num_by_numfield(row, '做t止损均线')
@@ -206,10 +207,10 @@ def handlebar(ContextInfo):
                     账户资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
                     做t资金买入股数 = int(做t资金 / 当前价格 / 100) * 100
                     买入股数 = min(账户资金最多买入股数, 做t资金买入股数)
-                    if 买入股数 < 100:
+                    if 买入股数 < 买入最小股数:
                         log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。账户资金最多买入股数：{账户资金最多买入股数}, 做t资金买入股数: {做t资金买入股数}")
                         continue
-                    买入股数 = 100  # todo: 仓位，测试期间暂定100股
+                    买入股数 = 买入最小股数  # todo: 仓位，测试期间暂定100股
 
                     qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略名称)
 
@@ -227,9 +228,9 @@ def handlebar(ContextInfo):
             当前价格 = curr_data['close']
             where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
 
-            if curr_data['pre_close'] < curr_data['ma' + str(顶部止损均线)]:  # 止损
+            if 顶部止损均线 < 1000 and curr_data['pre_close'] < curr_data['ma' + str(顶部止损均线)]:  # 止损
                 持仓可卖数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
-                db可卖数量 = get_num_by_numfield(row, '跌破止损均线需卖出股数')
+                db可卖数量 = get_num_by_numfield(row, '跌破顶部止损均线需卖出股数')
                 卖出数量 = min(db可卖数量, 持仓可卖数量)
                 if 卖出数量 == 0:
                     log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db可卖数量：{db可卖数量}, 持仓可卖股数: {持仓可卖股数}")

@@ -123,6 +123,7 @@ def handlebar(ContextInfo):
         code = qmt_code[:6]
         pre_close = row2['pre_close']
         name = row2['name']
+        买入最小股数 = get_买入最小股数_by_qmt_code(qmt_code)
 
         endtime = get_curr_date().replace('-', '') + "150000"
         df3 = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=g_period, dividend_type='front', count=1, end_time=endtime)
@@ -186,7 +187,7 @@ def handlebar(ContextInfo):
                 买入资金 = min(g_单支股票最大使用金额, 可用资金)
                 买入价格 = close  # 买入价设置为当前价
                 买入股数 = 100 * int(买入资金 / 买入价格 / 100)
-                买入股数 = 100  # todo：测试用，最大买入数量100股
+                买入股数 = 买入最小股数  # todo：测试用，最大买入数量100股
 
                 qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
                 log_and_send_im(f"{策略名称} {name}[{qmt_code}]达到第三天下跌阈值{g_curr下跌阈值}%，委托买入，下单金额: {买入资金}, 委托价格：核按钮买入, 买入股数： {买入股数}")
