@@ -45,13 +45,13 @@ def handlebar(ContextInfo):
         rt_当前做t状态 = get_str_by_strfield(row, 'rt_当前做t状态')
         period = get_str_by_strfield(row, 'period')  # 周期
         if period is None or period not in qu.period_list:
-            log_and_send_im(f"{curr_dtime} {策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
             continue
         if 做t均线 <= 1:
-            log_and_send_im(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 均线设置错误， 做t均线：{做t均线}，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 均线设置错误， 做t均线：{做t均线}，请检查，此条做T策略忽略！！")
             continue
         if 做t止损均线 <= 1:
-            log_and_send_im(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 均线设置错误， 止损均线：{做t止损均线}，请检查，此条做T策略忽略！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 均线设置错误， 止损均线：{做t止损均线}，请检查，此条做T策略忽略！！")
             continue
 
         df = qu.get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 做t止损均线)
@@ -63,14 +63,14 @@ def handlebar(ContextInfo):
             # todo:  如果还有未成交的单子，是否要在57分之前先撤单
             卖出数量 = qu.get_可卖股数_by_qmtcode(qmt_code)
             if 卖出数量 == 0:
-                log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {table_t} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！")
+                log_and_send_im_with_ttl(f"{策略名称} {table_t} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0，请人工检查！！")
                 continue
 
             卖出数量 = 100  # todo：仓位，测试期间暂定100股
             qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称)
 
             save_or_update_by_sql("UPDATE " + table_t + " SET status='0' " + where_clause)
-            log_and_send_im(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 达到止损卖出条件，已下单清仓！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，已下单清仓！！")
         else:
             相比均线涨幅 = curr_data['相比均线涨幅']
             if (相比均线涨幅 >= 高于均线百分比卖出 > 0) and (rt_当前做t状态 == '' or rt_当前做t状态 == '已买回'):  # 做T动作：卖出
@@ -78,7 +78,7 @@ def handlebar(ContextInfo):
                 做t卖出股数 = int(做t资金 / 当前价格 / 100) * 100
                 卖出股数 = min(做t卖出股数, 持仓可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出， todo：当前持股数逻辑需要讨论修改，测试期间先忽略
                 if 卖出股数 == 0:
-                    log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}")
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}")
                     continue
                 卖出股数 = 100  # todo: 仓位，测试期间暂定100股
 
@@ -94,7 +94,7 @@ def handlebar(ContextInfo):
             if (rt_当前做t状态 == '' or rt_当前做t状态 == '已t出'):  # 做T动作：马上下单买回
                 t出全部成交 = qu.check_委托是否已全部成交(qmt_code)
                 if not t出全部成交:
-                    log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {qmt_code}[{name}] t出全部成交: {t出全部成交}, 等待卖出的单子成交", 30)
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] t出全部成交: {t出全部成交}, 等待卖出的单子成交", 30)
                     continue
                 rt_买回价格 = get_num_by_numfield(row, 'rt_买回价格')
                 if 当前价格 <= rt_买回价格:  # 价格低于买回价格，下单买回
@@ -103,7 +103,7 @@ def handlebar(ContextInfo):
                     做t资金买入股数 = int(做t资金 / 当前价格 / 100) * 100
                     买入股数 = min(账户资金最多买入股数, 做t资金买入股数)
                     if 买入股数 < 100:
-                        log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。账户资金最多买入股数：{账户资金最多买入股数}, 做t资金买入股数：{做t资金买入股数}, 做t资金: {做t资金}")
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。账户资金最多买入股数：{账户资金最多买入股数}, 做t资金买入股数：{做t资金买入股数}, 做t资金: {做t资金}")
                         continue
                     买入股数 = 100  # todo: 仓位，测试期间暂定100股
 
@@ -116,7 +116,7 @@ def handlebar(ContextInfo):
 
 
 def init(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称} 策略已启动init")
+    log_and_send_im(f"------$$$$$$  {策略名称} 策略已启动init")
     pass_qmt_funcs()
     ContextInfo.set_account(cst.account)
 

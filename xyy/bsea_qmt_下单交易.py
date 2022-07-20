@@ -62,7 +62,7 @@ def timerHandler(ContextInfo):
             df = get_df_from_table("SELECT * FROM " + bsea_buy_table_t + " WHERE dtime='" + curr_date + "' AND status=1 ORDER BY 策略 ASC, 推荐理由 ASC")
             print(df)
             if len(df) == 0:
-                log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} 今日无xg结果！！！", 60)
+                log_and_send_im_with_ttl(f"{策略名称} 今日无xg结果！！！", 60)
             else:
                 for index, row in df.iterrows():
                     name = row['name']
@@ -84,7 +84,7 @@ def timerHandler(ContextInfo):
                 pre_close = row['pre_close']
                 一字板, 涨停价 = qu.is_当天一字板_by_qmt(ContextInfo, qmt_code, pre_close)
                 if 一字板:
-                    log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {code} 开盘顶一字板（如一直未开板就持有，开板就砸盘）", 60)
+                    log_and_send_im_with_ttl(f"{策略名称} {code} 开盘顶一字板（如一直未开板就持有，开板就砸盘）", 60)
                     g_一字板_df = g_一字板_df.append({'code': code, 'qmt_code': qmt_code, 'name': name, '涨停价': 涨停价}, ignore_index=True)
 
     if (curr_time >= '09:30:00' and curr_time < '11:33:00') or (curr_time >= '12:57:00' and curr_time < '15:03:00'):  # 卖出
@@ -156,7 +156,7 @@ def timerHandler(ContextInfo):
 
 
 def init(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称} 已启动init")
+    log_and_send_im(f"------$$$$$$ {策略名称} 已启动init")
     pass_qmt_funcs()
 
     ContextInfo.set_account(cst.account)
@@ -198,12 +198,12 @@ def is_竞价开关_prepared():
     conf_sql = "SELECT * FROM xyy_config WHERE conf='竞价自动下单'"
     conf_df = get_df_from_table(conf_sql)
     if len(conf_df) == 0:
-        log_and_send_im(f"{curr_dtime} {策略名称} 无竞价自动下单配置，请检查xyy_config表对应的配置项")
+        log_and_send_im(f"{策略名称} 无竞价自动下单配置，请检查xyy_config表对应的配置项")
         is_prepared = False
     else:
         conf_data = conf_df.iloc[0]
         if conf_data['val'] != '1':
-            log_and_send_im(f"{curr_dtime} {策略名称} 竞价配置数据未准备好，请等待xg程序将'竞价自动下单'对应的val值设置为1...")
+            log_and_send_im(f"{策略名称} 竞价配置数据未准备好，请等待xg程序将'竞价自动下单'对应的val值设置为1...")
             is_prepared = False
         else:
             is_prepared = True

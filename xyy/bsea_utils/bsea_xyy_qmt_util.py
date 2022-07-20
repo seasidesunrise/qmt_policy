@@ -181,12 +181,12 @@ def 国债逆回购(ContextInfo, account=cst.account):
 
     逆回购_finish_date = g_逆回购_finish_date_dict.get(account)
     if 逆回购_finish_date is not None and 逆回购_finish_date == curr_date:
-        log_and_send_im_with_ttl(f"{curr_dtime} 检测到重复逆回购，跳过: {g_逆回购_finish_date_dict}", 600)
+        log_and_send_im_with_ttl(f"检测到重复逆回购，跳过: {g_逆回购_finish_date_dict}", 600)
         return
     print(f"{curr_dtime} 国债逆回购: {g_逆回购_finish_date_dict}")
     acct_info = get_trade_detail_data(account, 'stock', 'account')
     可用资金 = acct_info[0].m_dAvailable
-    log_and_send_im(f"{curr_dtime} 帐户可用资金为：{可用资金}")
+    log_and_send_im(f"帐户可用资金为：{可用资金}")
 
     shiwan_cnt = int(可用资金 / 100000)
     yiqian_cnt = int((可用资金 - 100000 * shiwan_cnt) / 1000)
@@ -198,15 +198,15 @@ def 国债逆回购(ContextInfo, account=cst.account):
 
     if shiwan_手数 > 0:
         code = GC_001_code
-        log_and_send_im(f'{curr_dtime} 卖出国债逆回购 {code} 金额：{shiwan_cnt * 10}万，手数: {shiwan_手数}')
+        log_and_send_im(f'卖出国债逆回购 {code} 金额：{shiwan_cnt * 10}万，手数: {shiwan_手数}')
         passorder(24, 1101, account, code, 5, -1, shiwan_手数, '国债逆回购', 1, '国债逆回购_gc001_oid', ContextInfo)
     if yiqian_手数 > 0:
         code = R_001_code
-        log_and_send_im(f'{curr_dtime} 卖出国债逆回购 {code} 金额：{yiqian_cnt / 10}万，手数: {yiqian_手数}')
+        log_and_send_im(f'卖出国债逆回购 {code} 金额：{yiqian_cnt / 10}万，手数: {yiqian_手数}')
         passorder(24, 1101, account, R_001_code, 5, -1, yiqian_手数, '国债逆回购', 1, '国债逆回购_r001_oid', ContextInfo)
     逆回购_finish_date = get_curr_date()
     g_逆回购_finish_date_dict.update({account: 逆回购_finish_date})
-    log_and_send_im(f'{curr_dtime} 今日国债逆回购完成，g_finish_date: {g_逆回购_finish_date_dict}')
+    log_and_send_im(f'今日国债逆回购完成，g_finish_date: {g_逆回购_finish_date_dict}')
 
 
 def 新股_新债_申购(ContextInfo, account=cst.account):

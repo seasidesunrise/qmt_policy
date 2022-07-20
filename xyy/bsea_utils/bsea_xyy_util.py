@@ -17,7 +17,7 @@ from pandas import NaT
 import bsea_cst as cst
 from cacheout import Cache
 
-cache = Cache(maxsize=10000, ttl=0, timer=time.time, default=None)  # defaults
+cache = Cache(maxsize=10000, timer=time.time, default=None)  # defaults
 
 class 定价条件单(Enum):
     定价买入 = '定价买入'
@@ -32,9 +32,13 @@ class T_Type(Enum):
 
 def log_and_send_im(text):
     # 定义要发送的数据
+    curr_date = get_curr_date()
+    curr_time = get_curr_time()
+    curr_dtime = curr_date + " " + curr_time
+
     data = {
         "msg_type": "text",
-        "content": {"text": text + '\n'}
+        "content": {"text": curr_dtime + " " + text + '\n'}
     }
     # 发送post请求
     try:
@@ -49,6 +53,7 @@ def log_and_send_im_with_ttl(text, ttl=600):
     if cache.get(text) is not None:
         print(f"消息文本命中cache，防重发生效，跳过: {text}")
         return
+
     log_and_send_im(text)
     cache.set(text, text, ttl=ttl)
 

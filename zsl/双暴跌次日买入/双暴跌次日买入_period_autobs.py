@@ -83,7 +83,7 @@ def recheck_prepare_stocks(ContextInfo):
         if pre1k_data['涨幅'] <= -g_pre1k下跌百分比 < 0 and pre2k_data['涨幅'] <= -g_pre2k下跌百分比 < 0:
             满足双暴跌买入预备条件 = True
             pre_close = pre1k_data['close']  # 设置pre1k收盘价
-            log_and_send_im(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 满足双暴跌买入预备条件，开始监控择机买入， pre_close: {fmt_float2str(pre_close)}")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 满足双暴跌买入预备条件，开始监控择机买入， pre_close: {fmt_float2str(pre_close)}")
             g_prepare_df.loc[qmt_code] = {'qmt_code': qmt_code, '满足双暴跌买入预备条件': 满足双暴跌买入预备条件, 'pre_close': pre_close, 'name': name}
 
     print(f"{curr_dtime} {策略名称} 第一、第二K满足条件，预备股池: {g_prepare_df}")
@@ -147,13 +147,13 @@ def handlebar(ContextInfo):
                 if g_启用成交量 or g_启用CCI向上:
                     df32 = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=g_period, dividend_type='front', count=21)
                     if len(df32) == 0:
-                        log_and_send_im(f"{curr_dtime} {策略名称} 获取cci、均量线指标数据源出错, 请联系qmt或检查网络状态")
+                        log_and_send_im(f"{策略名称} 获取cci、均量线指标数据源出错, 请联系qmt或检查网络状态")
                         continue
 
                     if g_启用CCI向上:
                         cci_timeperiode = 14
                         if len(df32) == 0:
-                            log_and_send_im(f"{curr_dtime} {策略名称} 获取cci指标数据源出错, 请联系qmt或检查网络状态")
+                            log_and_send_im(f"{策略名称} 获取cci指标数据源出错, 请联系qmt或检查网络状态")
                             continue
                         df32['cci'] = talib.CCI(df32['high'], df32['low'], df32['close'], cci_timeperiode)
                         print(df32)
@@ -189,7 +189,7 @@ def handlebar(ContextInfo):
                 买入股数 = 100  # todo：测试用，最大买入数量100股
 
                 qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
-                log_and_send_im(f"{curr_dtime} {策略名称} {name}[{qmt_code}]达到第三天下跌阈值{g_curr下跌阈值}%，委托买入，下单金额: {买入资金}, 委托价格：核按钮买入, 买入股数： {买入股数}")
+                log_and_send_im(f"{策略名称} {name}[{qmt_code}]达到第三天下跌阈值{g_curr下跌阈值}%，委托买入，下单金额: {买入资金}, 委托价格：核按钮买入, 买入股数： {买入股数}")
 
                 # insert到已买入表，留作日志用
                 买入时间 = dtime_curr + " " + get_curr_time()
@@ -227,7 +227,7 @@ def handlebar(ContextInfo):
             卖出数量 = data0['可卖数量']
             当前持仓量 = data0['当前持仓量']
             if 卖出数量 <= 0:
-                log_and_send_im(f"{curr_dtime} {策略名称} {qmt_code}当前持仓量：{当前持仓量}, 可卖数量为: {卖出数量}, 无法卖出！！！")
+                log_and_send_im(f"{策略名称} {qmt_code}当前持仓量：{当前持仓量}, 可卖数量为: {卖出数量}, 无法卖出！！！")
             else:
                 qu.sell_stock_he_2p(ContextInfo, code, name, 卖出价格, 卖出数量, 策略名称)  # 放到前面去设置'是否卖出'=1
 

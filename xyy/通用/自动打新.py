@@ -28,7 +28,7 @@ def timerHandler(ContextInfo):
 
 
 def init(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称} 已启动init")
+    log_and_send_im(f"------$$$$$$ {策略名称} 已启动init")
     pass_qmt_funcs()
 
     ContextInfo.set_account(cst.account)

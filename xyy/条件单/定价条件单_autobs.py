@@ -36,12 +36,12 @@ def handlebar(ContextInfo):
         pk_id = get_num_by_numfield(row, 'id')
         条件单类型 = get_str_by_strfield(row, '条件单类型')
         if 条件单类型 != 定价条件单.定价买入.value and 条件单类型 != 定价条件单.定价卖出.value:
-            log_and_send_im_with_ttl(f"{curr_dtime} {pk_id} 条件单类型: {条件单类型} 配置错误，请检查！")
+            log_and_send_im_with_ttl(f"{pk_id} 条件单类型: {条件单类型} 配置错误，请检查！")
             continue
 
         df = ContextInfo.get_market_data(fields=['volume', 'close'], stock_code=[qmt_code], period='1d', dividend_type='front', count=1)
         if len(df) == 0 or df.iloc[0]['volume'] == 0:  # 判断volume是为了过滤停牌
-            log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 获取行情数据失败，跳过")
+            log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 获取行情数据失败，跳过")
             continue
         curr_data = df.iloc[0]
         当前价格 = curr_data['close']
@@ -57,7 +57,7 @@ def handlebar(ContextInfo):
                 is_valid_买入配置 = True
 
             if not is_valid_买入配置:
-                log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期}  {int(pk_id)}此条配置无效，请检查！当天跳过。")
+                log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期}  {int(pk_id)}此条配置无效，请检查！当天跳过。")
                 continue
             else:
                 if 当前价格 <= 买入价格:
@@ -65,7 +65,7 @@ def handlebar(ContextInfo):
                     资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
                     买入股数 = min(买入数量, 资金最多买入股数)
                     if 买入股数 < 100:
-                        log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 达到买入条件，但买入股数为零。db买入股数：{买入数量}, 资金最多买入股数: {资金最多买入股数}, 账户可用资金: {账户可用资金}")
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但买入股数为零。db买入股数：{买入数量}, 资金最多买入股数: {资金最多买入股数}, 账户可用资金: {账户可用资金}")
                         continue
                     买入股数 = 100  # todo: 待删除
 
@@ -85,14 +85,14 @@ def handlebar(ContextInfo):
                 is_valid_卖出配置 = True
 
             if not is_valid_卖出配置:
-                log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期} {int(pk_id)}此条配置无效，请检查！当天跳过。")
+                log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期} {int(pk_id)}此条配置无效，请检查！当天跳过。")
                 continue
             else:
                 if 当前价格 >= 卖出价格:
                     当前持股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
                     卖出股数 = min(卖出数量, 当前持股数)
                     if 卖出股数 < 100:
-                        log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db卖出股数：{卖出数量}, 持仓可卖股数: {当前持股数}")
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db卖出股数：{卖出数量}, 持仓可卖股数: {当前持股数}")
                         continue
                     卖出股数 = 100  # todo：待删除
 
@@ -103,7 +103,7 @@ def handlebar(ContextInfo):
 
 
 def init(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称} 策略已启动init")
+    log_and_send_im(f"------$$$$$$ {策略名称} 策略已启动init")
     pass_qmt_funcs()
     ContextInfo.set_account(cst.account)
 
