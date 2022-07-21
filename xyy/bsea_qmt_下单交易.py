@@ -25,13 +25,14 @@ bsea_sell_table_t = 'bsea_sell_info'
 g_countdown_latch = 0
 g_一字板_df = pd.DataFrame()
 
+g_data = {}
 
 def timerHandler(ContextInfo):
     curr_date = get_curr_date()
     curr_time = get_curr_time()
     curr_dtime = curr_date + " " + curr_time
 
-    global g_一字板_df
+    global g_data, g_一字板_df
     print(f'------$$$$$$ {策略名称} timerHandler计时器 {curr_date} {curr_time}')
 
     if curr_time > '09:22:20' and curr_time < '09:25:00':  # 将昨日跌停标的卖出
@@ -62,8 +63,12 @@ def timerHandler(ContextInfo):
             df = get_df_from_table("SELECT * FROM " + bsea_buy_table_t + " WHERE dtime='" + curr_date + "' AND status=1 ORDER BY 策略 ASC, 推荐理由 ASC")
             print(df)
             if len(df) == 0:
-                log_and_send_im_with_ttl(f"{策略名称} 今日无xg结果！！！", 60)
+                if g_data['已下单'] is None:
+                    log_and_send_im_with_ttl(f"{策略名称} 今日无xg结果！！！", 60)
+                else:
+                    log_and_send_im_with_ttl(f"{策略名称} 今日xg结果，已下单清空！！！", 60)
             else:
+                g_data['已下单'] = True
                 for index, row in df.iterrows():
                     name = row['name']
                     qmt_code = row['qmt_code']  # 如'600000.SH'
