@@ -70,7 +70,7 @@ def handlebar(ContextInfo):
                 continue
 
             卖出数量 = 100  # todo：应该全部卖掉
-            卖出理由 = f"pre1k收盘价跌破{period} {做t止损均线}均线，触发做t止损"
+            卖出理由 = f"pre1k收盘价跌破{period} {做t止损均线}均线，触发止损"
             qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称, 卖出理由)  # 低于当前价2个点卖出，不成交就不成交
 
             save_or_update_by_sql("UPDATE " + table_t + " SET status='0' " + where_clause)
@@ -87,7 +87,7 @@ def handlebar(ContextInfo):
                     continue
                 卖出股数 = 100  # todo: 仓位，测试期间暂定100股
 
-                卖出理由 = f"相比{做t均线}均线涨幅高于{高于均线百分比卖出}%，触发卖出"
+                卖出理由 = f"相比{period} {做t均线}均线涨幅高于{高于均线百分比卖出}%，触发卖出"
                 qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称, 卖出理由)  # 低于当前价2个点卖出，不成交就不成交
 
                 t_status = T_Type.已t出.value
@@ -110,7 +110,7 @@ def handlebar(ContextInfo):
                     continue
                 买入股数 = 买入最小股数  # todo: 仓位大小需要
 
-                买入理由 = f"当前价相比{period} {做t均线}均线涨幅低于-{低于均线百分比买入}%，触发做t买回"
+                买入理由 = f"当前价相比{period} {做t均线}均线涨幅低于：-{低于均线百分比买入}%，触发做t买回"
                 qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略名称, 买入理由)
 
                 t_status = T_Type.已买回.value

@@ -230,7 +230,8 @@ def handlebar(ContextInfo):
             if 卖出数量 <= 0:
                 log_and_send_im(f"{策略名称} {qmt_code}当前持仓量：{当前持仓量}, 可卖数量为: {卖出数量}, 无法卖出！！！")
             else:
-                qu.sell_stock_he_2p(ContextInfo, code, name, 卖出价格, 卖出数量, 策略名称)  # 放到前面去设置'是否卖出'=1
+                卖出理由 = f"浮盈比例大于，{g_止盈比例}%，触发止盈"
+                qu.sell_stock_he_2p(ContextInfo, code, name, 卖出价格, 卖出数量, 策略名称, 卖出理由)  # 放到前面去设置'是否卖出'=1
 
 
 def deal_callback(ContextInfo, dealInfo):

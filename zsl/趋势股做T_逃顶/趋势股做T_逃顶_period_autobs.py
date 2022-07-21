@@ -68,6 +68,7 @@ def timerHandler(ContextInfo):
         where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
 
         ii = 0
+        is_成交量曾放量 = False
         for index2, row2 in df.iterrows():
             ii += 1
             volume = row2['volume'] / 10000  # 转为：万手，qmt返回的volume单位就是手
@@ -81,10 +82,11 @@ def timerHandler(ContextInfo):
                 if g_data.get(key) is None:
                     g_data.update({key: '1'})
                     rt_成交量放量dtime = rt_成交量放量dt
+                    is_成交量曾放量 = True
                     log_and_send_im(f"{策略名称} {qmt_code}[{name}] 成交量放量dtime dt:{dt}, rt_成交量放量dtime: {rt_成交量放量dtime}")
                     save_or_update_by_sql("UPDATE " + table_t + " SET rt_成交量放量dtime='" + rt_成交量放量dtime + "', 是否做t='0' " + where_clause)
 
-            if ii < len(df):  # 最后一条数据为盘中，盘中k线未最终确认，不参与计算上影线
+            if ii < len(df) and is_成交量曾放量:  # 最后一条数据为盘中，盘中k线未最终确认，不参与计算上影线
                 上影线长度与实体倍数 = get_num_by_numfield(row, '上影线长度与实体倍数')
                 上影线最高价涨幅 = get_num_by_numfield(row, '上影线最高价涨幅')
 
@@ -173,7 +175,8 @@ def handlebar(ContextInfo):
                     continue
                 卖出数量 = 100  # todo：仓位，测试期间暂定100股
 
-                qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称)
+                卖出理由 = f"pre1k收盘价跌破{period} {做t止损均线}均线，触发止损"
+                qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称, 卖出理由)
 
                 save_or_update_by_sql("UPDATE " + table_t + " SET 是否做t='0', status='0' " + where_clause)
                 log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到做t止损卖出条件，已下单清仓！！")
@@ -190,7 +193,8 @@ def handlebar(ContextInfo):
                         continue
                     卖出股数 = 100  # todo: 仓位，测试期间暂定100股
 
-                    qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称)
+                    卖出理由 = f"相比{period} {做t均线}均线涨幅高于{高于均线百分比卖出}%，触发卖出"
+                    qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称, 卖出理由)
 
                     卖出后买回价与卖出价的百分比 = get_num_by_numfield(row, '卖出后t回买入价与卖出价百分比')
                     rt_买回价格 = 当前价格 * 卖出后买回价与卖出价的百分比 / 100
@@ -215,7 +219,8 @@ def handlebar(ContextInfo):
                             continue
                         买入股数 = 买入最小股数  # todo: 仓位，测试期间暂定100股
 
-                        qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略名称)  # 核按钮买
+                        买入理由 = f"当前价格低于 rt_买回价格: {rt_买回价格}，触发做t买回"
+                        qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略名称, 买入理由)  # 核按钮买
 
                         t_status = T_Type.已买回.value
                         update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause
@@ -240,7 +245,8 @@ def handlebar(ContextInfo):
                     continue
                 可卖数量 = 100  # todo: 暂设为100股
 
-                qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 可卖数量, 策略名称)  # 核按钮卖
+                卖出理由 = f"不做t后，pre1k收盘价跌破{period} {顶部止损均线}均线，触发止损"
+                qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 可卖数量, 策略名称, 卖出理由)  # 核按钮卖
 
                 save_or_update_by_sql("UPDATE " + table_t + " SET status='0' " + where_clause)
                 log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，已下单清仓！！")
@@ -256,7 +262,8 @@ def handlebar(ContextInfo):
                             continue
                         卖出数量 = 100  # todo: 测试
 
-                        qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称)  # 核按钮卖
+                        卖出理由 = f"不做t后，当前价高于 rt_上影线后卖出价格[{rt_上影线后卖出价格}]，触发卖出"
+                        qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称, 卖出理由)  # 核按钮卖
                         save_or_update_by_sql("UPDATE " + table_t + " SET rt_上影线后已触发卖出='1' WHERE qmt_code='" + qmt_code + "'")
 
 
