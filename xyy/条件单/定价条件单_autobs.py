@@ -69,8 +69,8 @@ def handlebar(ContextInfo):
                         log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但买入股数为零。db买入股数：{买入数量}, 资金最多买入股数: {资金最多买入股数}, 账户可用资金: {账户可用资金}")
                         continue
                     买入股数 = 买入最小股数  # todo: 待删除
-
-                    qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称)
+                    买入理由 = "价格低于设置的定价买入价格"
+                    qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称, 买入理由)
 
                     update_sql = "UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "'" + where_clause
                     save_or_update_by_sql(update_sql)
@@ -96,8 +96,8 @@ def handlebar(ContextInfo):
                         log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db卖出股数：{卖出数量}, 持仓可卖股数: {当前持股数}")
                         continue
                     卖出股数 = 100  # todo：待删除
-
-                    qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称)
+                    卖出理由 = "价格高于设置的定价卖出价格"
+                    qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称, 卖出理由)
 
                     update_sql = "UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "'" + where_clause
                     save_or_update_by_sql(update_sql)

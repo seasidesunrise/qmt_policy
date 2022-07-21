@@ -58,7 +58,8 @@ def handlebar(ContextInfo):
                 continue
 
             卖出数量 = 100  # todo：应该全部卖掉
-            qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出数量, 策略名称)  # 带价格笼子的核按钮卖出
+            卖出理由 = "价格低于设置的做t止损价格，触发止损"
+            qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出数量, 策略名称, 卖出理由)  # 带价格笼子的核按钮卖出
 
             save_or_update_by_sql("UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "' WHERE qmt_code='" + qmt_code + "'")
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] 卖出数量: {卖出数量} 达到止损卖出条件，已清仓！！")
@@ -71,7 +72,8 @@ def handlebar(ContextInfo):
                     continue
                 买入股数 = 买入最小股数  # todo: 仓位大小需要
 
-                qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称)
+                买入理由 = "价格低于设置的做t买入价格，触发买入"
+                qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称, 买入理由)
 
                 t_status = T_Type.已买回.value
                 update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "', lastmodified='" + get_lastmodified() + "'" + where_clause
@@ -87,7 +89,8 @@ def handlebar(ContextInfo):
                     continue
                 卖出股数 = 100  # todo: 仓位大小需要
 
-                qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称)
+                卖出理由 = "价格高于设置的做t卖出价格，触发卖出"
+                qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称, 卖出理由)
 
                 t_status = T_Type.已t出.value
                 update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(0) + "', lastmodified='" + get_lastmodified() + "'" + where_clause
