@@ -226,7 +226,7 @@ def handlebar(ContextInfo):
         else:
             rt_成交量放量dtime = get_dtime_by_datefield(row, 'rt_成交量放量dtime')
             if rt_成交量放量dtime is None:
-                print(f"{curr_dtime} {策略名称} rt_成交量放量dtime: {rt_成交量放量dtime}")
+                log_and_send_im_with_ttl(f"{curr_dtime} {策略名称} rt_成交量放量dtime: {rt_成交量放量dtime}")
                 continue
 
             rt_上影线dtime = get_dtime_by_datefield(row, 'rt_上影线dtime')
