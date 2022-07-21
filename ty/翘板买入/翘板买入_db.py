@@ -1,6 +1,7 @@
 # encoding:gbk
 
 # 想做一个策略交易，条件：跌停封单大于2亿，30秒内跌停成交量到1亿，封单金额小于5000w，买入
+# 如果把  ”初始跌停封单金额“ 设置成0， 那么不监控别的指标了，直接判断卖一封单，小于 ”触发买入封单金额“  就委托买入
 
 """
 翘板买入策略
@@ -10,7 +11,7 @@
 import bsea_utils.bsea_xyy_qmt_util as qu
 from bsea_utils.bsea_xyy_util import *
 
-cst.webhook = 'https://open.feishu.cn/open-apis/bot/v2/hook/6adbb16f-265f-4a92-bac8-b703b36c7448'
+#cst.webhook = 'https://open.feishu.cn/open-apis/bot/v2/hook/6adbb16f-265f-4a92-bac8-b703b36c7448'
 
 策略名称 = '翘板买入'
 table_t = 'bsea_翘板买入'
@@ -40,12 +41,17 @@ def recheck_prepare_stocks(ContextInfo):
     all_df = get_df_from_table(sql_all_标的)
     if len(all_df) == 0:
         print(f"{策略名称} {table_t} 有效标的为空，跳过")
+    for index11, row11 in all_df.iterrows():
+        code = row11['code']
+        qmt_code = qu.get_qmtcode_by_code(code)
+        all_df.loc[index11, 'qmt_code'] = qmt_code
 
     global g_prepare_df
     df_all = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=all_df['qmt_code'].tolist(), period='1d', dividend_type='front', count=2)
     print(df_all)
     for index, row in all_df.iterrows():
-        qmt_code = row['qmt_code']
+        code = row['code']
+        qmt_code = qu.get_qmtcode_by_code(code)
         监控秒数 = row['监控秒数']
         初始跌停封单金额 = row['初始跌停封单金额']
         触发买入封单金额 = row['触发买入封单金额']
@@ -78,11 +84,8 @@ def handlebar(ContextInfo):
     global g_prepare_df
     global g_final_df
     global g_今天下过的单_set
-    d = ContextInfo.barpos
-    realtime = ContextInfo.get_bar_timetag(d)
-    nowdate = timetag_to_datetime(realtime, '%Y-%m-%d %H:%M:%S')
-
     global g_countdown_latch
+
     g_countdown_latch -= 1
     if g_countdown_latch <= 0:
         g_countdown_latch = 8
@@ -129,37 +132,50 @@ def handlebar(ContextInfo):
 
         print(f"{qmt_code}[{name}] 当前价: {close}, 跌停价: {跌停价},  卖一价格: {卖一价格}, 卖一数量: {卖一数量}, 卖一金额: {卖一金额}, 成交额: {成交额}万, 成交量:{成交量}手, 初始跌停封单金额：{初始跌停封单金额}万,  close <= 跌停价: {close <= 跌停价}")
 
-        if close <= 跌停价 and 卖一金额 >= 初始跌停封单金额:  # 跌停、且封单大于2000万
-            has_code = False
-            if len(g_final_df) > 0:
-                if len(g_final_df[g_final_df['qmt_code'] == qmt_code]) > 0:  # 先删除
-                    has_code = True
-            if not has_code:
-                log_and_send_im(f"{qmt_code}[{name}] 跌停，封单金额大于 {初始跌停封单金额}万，进入监控队列...")
-            g_final_df.loc[qmt_code] = {'qmt_code': qmt_code, 'name': name, '初始监控卖一封单': 卖一金额, '初始监控成交额': 成交额, '初始监控成交量': 成交量, '初始监控时间': time.time(), '初始监控时间_dt': get_curr_time()}
-            print("############")
-            print(g_final_df)
-            return
+        if 初始跌停封单金额 == 0:
+            if 卖一金额 <= 触发买入封单金额:
+                # 触发买入
+                if qmt_code not in g_今天下过的单_set:
+                    g_今天下过的单_set.add(qmt_code)
+                    买入价格 = pre_close * (100 - 9) / 100
+                    买入股数 = int(g_单支股票最大使用金额 / 买入价格 / 100) * 100
+                    买入股数 = 100  # todo：测试期间，统一用100股
+                    qu.buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
+                    log_and_send_im(f"{qmt_code}[{name}] 初始跌停封单金额=0， 且跌停封单小于触发买入封单，触发买入，已下单, 买入价格：{fmt_float2str(买入价格)}, 买入股数: {买入股数}")
+                else:
+                    print(f"{qmt_code}[{name}] 今天已下过单，忽略")
+        else:
+            if close <= 跌停价 and 卖一金额 >= 初始跌停封单金额:  # 跌停、且封单大于2000万
+                has_code = False
+                if len(g_final_df) > 0:
+                    if len(g_final_df[g_final_df['qmt_code'] == qmt_code]) > 0:  # 先删除
+                        has_code = True
+                if not has_code:
+                    log_and_send_im(f"{qmt_code}[{name}] 跌停，封单金额大于 {初始跌停封单金额}万，进入监控队列...")
+                g_final_df.loc[qmt_code] = {'qmt_code': qmt_code, 'name': name, '初始监控卖一封单': 卖一金额, '初始监控成交额': 成交额, '初始监控成交量': 成交量, '初始监控时间': time.time(), '初始监控时间_dt': get_curr_time()}
+                print("############")
+                print(g_final_df)
+                return
 
-        if len(g_final_df) > 0:
-            curr_final_df = g_final_df[g_final_df['qmt_code'] == qmt_code].copy()
-            if len(curr_final_df) > 0:
-                curr_final_data = curr_final_df.iloc[0]
-                初始监控时间 = curr_final_data['初始监控时间']
-                初始监控成交额 = curr_final_data['初始监控成交额']
-                当前时间 = time.time()
-                print(f"--->>>>>{qmt_code}[{name}] cond1: {当前时间 - 初始监控时间 <= 监控秒数}, 监控秒数: {监控秒数},  cond2: {((成交额 - 初始监控成交额) > 监控秒数内至少成交金额)}, cond3: {(卖一金额 <= 触发买入封单金额)}")
-                if (当前时间 - 初始监控时间 <= 监控秒数) and ((成交额 - 初始监控成交额) > 监控秒数内至少成交金额) and (卖一金额 <= 触发买入封单金额):
-                    # 触发买入
-                    if qmt_code not in g_今天下过的单_set:
-                        g_今天下过的单_set.add(qmt_code)
-                        买入价格 = pre_close * (100 - 9) / 100
-                        买入股数 = int(g_单支股票最大使用金额 / 买入价格 / 100) * 100
-                        买入股数 = 100  # todo：测试期间，统一用100股
-                        qu.buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
-                        log_and_send_im(f"{qmt_code}[{name}] 跌停封单金额急剧减少，触发买入，已下单, 买入价格：{fmt_float2str(买入价格)}, 买入股数: {买入股数}")
-                    else:
-                        print(f"{qmt_code}[{name}] 今天已下过单，忽略")
+            if len(g_final_df) > 0:
+                curr_final_df = g_final_df[g_final_df['qmt_code'] == qmt_code].copy()
+                if len(curr_final_df) > 0:
+                    curr_final_data = curr_final_df.iloc[0]
+                    初始监控时间 = curr_final_data['初始监控时间']
+                    初始监控成交额 = curr_final_data['初始监控成交额']
+                    当前时间 = time.time()
+                    print(f"--->>>>>{qmt_code}[{name}] cond1: {当前时间 - 初始监控时间 <= 监控秒数}, 监控秒数: {监控秒数},  cond2: {((成交额 - 初始监控成交额) > 监控秒数内至少成交金额)}, cond3: {(卖一金额 <= 触发买入封单金额)}")
+                    if (当前时间 - 初始监控时间 <= 监控秒数) and ((成交额 - 初始监控成交额) > 监控秒数内至少成交金额) and (卖一金额 <= 触发买入封单金额):
+                        # 触发买入
+                        if qmt_code not in g_今天下过的单_set:
+                            g_今天下过的单_set.add(qmt_code)
+                            买入价格 = pre_close * (100 - 9) / 100
+                            买入股数 = int(g_单支股票最大使用金额 / 买入价格 / 100) * 100
+                            买入股数 = 100  # todo：测试期间，统一用100股
+                            qu.buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
+                            log_and_send_im(f"{qmt_code}[{name}] 跌停封单金额急剧减少，触发买入，已下单, 买入价格：{fmt_float2str(买入价格)}, 买入股数: {买入股数}")
+                        else:
+                            print(f"{qmt_code}[{name}] 今天已下过单，忽略")
 
 
 def pass_qmt_funcs():
