@@ -247,7 +247,7 @@ def 新股_新债_申购(ContextInfo, account=cst.account):
     log_and_send_im(f'今日自动申购新股、新可转债完成，g_新股申购_finish_date: {g_新股申购_finish_date_dict}')
 
 
-def buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略):
+def buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略, 买入理由=''):
     """ 买入下单 """
     global g_今天下过的单_dict
     今天下过的单_set = g_今天下过的单_dict.get(策略)
@@ -258,26 +258,26 @@ def buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略):
     else:
         今天下过的单_set.add(买单_unique_str)  # todo：是否会有线程安全问题，先忽略
         g_今天下过的单_dict.update({策略: 今天下过的单_set})
-        log_and_send_im(f"{策略} 委托买入 {qmt_code}  {name}  {买入股数}  股, 委托价格：{买入价格}, 委托Id: {买单_unique_str}")
+        log_and_send_im(f"{策略} 委托买入 {qmt_code}  {name}  {买入股数}  股, 委托价格：{买入价格}, 委托Id: {买单_unique_str}, 买入理由: {买入理由}")
         passorder(23, 1101, cst.account, qmt_code, 11, 买入价格, 买入股数, 策略, 1, 买单_unique_str, ContextInfo)  # 买入
 
 
-def buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略):
+def buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略, 卖出理由=''):
     """ 核按钮买入下单 """
     if qmt_code.startswith('688') or qmt_code.startswith('3'):
         # 取当前价
         当前价格 = get_curr_price(ContextInfo, qmt_code)
-        buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略)
+        buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略, 卖出理由)
     else:
         当日涨停价, 当日跌停价 = get_涨停_跌停价_by_qmt(ContextInfo, qmt_code)
         买入价格 = 当日涨停价
-        buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略)
+        buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略, 卖出理由)
 
 
-def buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略):
+def buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略, 卖出理由=''):
     买入价格 = (1 + 0.019) * 当前价格
     买入价格 = round(买入价格 + small_flt, 2)
-    buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略)
+    buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略, 卖出理由)
 
 
 def get_涨停_跌停价_by_qmt(ContextInfo, qmt_code):
@@ -287,7 +287,7 @@ def get_涨停_跌停价_by_qmt(ContextInfo, qmt_code):
     return 当日涨停价, 当日跌停价
 
 
-def sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略):
+def sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略, 卖出理由=''):
     """ 卖出下单 """
     global g_sell_委托单_num_dict
     sell_委托单_num = get_num_by_numfield(g_sell_委托单_num_dict, 策略)
@@ -295,26 +295,26 @@ def sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略):
     sell_order_id = 策略 + '_SELL_ORDER_' + str(sell_委托单_num)
     g_sell_委托单_num_dict.update({策略: sell_委托单_num})
 
-    log_and_send_im(f"{策略} 委托卖出 {qmt_code}  {name} {卖出数量} 股, 委托价格：{卖出价格}, sell_order_id: {sell_order_id}")
+    log_and_send_im(f"{策略} 委托卖出 {qmt_code}  {name} {卖出数量} 股, 委托价格：{卖出价格}, sell_order_id: {sell_order_id}，卖出理由: {卖出理由}")
     passorder(24, 1101, cst.account, qmt_code, 11, 卖出价格, 卖出数量, 策略, 1, sell_order_id, ContextInfo)  # 卖出
 
 
-def sell_stock_he(ContextInfo, qmt_code, name, 卖出数量, 策略):
+def sell_stock_he(ContextInfo, qmt_code, name, 卖出数量, 策略, 卖出理由=''):
     if qmt_code.startswith('688') or qmt_code.startswith('3'):
         # 取当前价
         当前价格 = get_curr_price(ContextInfo, qmt_code)
-        sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略)
+        sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略, 卖出理由)
     else:
         当日涨停价, 当日跌停价 = get_涨停_跌停价_by_qmt(ContextInfo, qmt_code)
         卖出价格 = 当日跌停价
-        sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略)
+        sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略, 卖出理由)
 
 
-def sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略):
+def sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略, 卖出理由=''):
     卖出价格1 = (1 - 0.019) * 当前价格
     卖出价格 = round(卖出价格1 - small_flt, 2)
 
-    sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略)
+    sell_stock(ContextInfo, qmt_code, name, 卖出价格, 卖出数量, 策略, 卖出理由)
 
 
 def cancel_all_order(ContextInfo, 策略, account=cst.account):

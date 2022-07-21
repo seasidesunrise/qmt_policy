@@ -52,7 +52,9 @@ def timerHandler(ContextInfo):
                 if len(tmpdf) > 0:
                     tmpdata = tmpdf.iloc[0]
                     可卖数量 = tmpdata['可卖数量']
-                    qu.sell_stock_he(ContextInfo, qmt_code, name, 可卖数量, 策略名称)  # 核按钮卖出
+                    卖出理由 = "昨日收盘跌停，今天开盘竞价he卖出"
+                    log_and_send_im(f"{策略名称} {qmt_code}[{name}] {卖出理由}")
+                    qu.sell_stock_he(ContextInfo, qmt_code, name, 可卖数量, 策略名称, 卖出理由)  # 核按钮卖出
                     save_or_update_by_sql("UPDATE " + bsea_sell_table_t + " SET status=0 WHERE qmt_code='" + qmt_code + "' AND dtime='" + curr_date + "' AND 开盘卖出=1 AND 策略='" + 策略 + "'")
 
     if curr_time > '09:25:20' and curr_time < '09:30:00':  # 买入
@@ -129,22 +131,26 @@ def timerHandler(ContextInfo):
                             一字板tmpdata = 一字板tmpdf.iloc[0]
                             涨停价 = 一字板tmpdata['涨停价']
                             if 当前价 < 涨停价:  # 破板，立即挂跌停价卖出
-                                qu.sell_stock_he(ContextInfo, qmt_code, name, 可卖数量, 策略)  # 考虑了价格笼子的核卖
+                                卖出理由 = "一字板开板卖出"
+                                qu.sell_stock_he(ContextInfo, qmt_code, name, 可卖数量, 策略, 卖出理由)  # 考虑了价格笼子的核卖
                                 save_or_update_by_sql("UPDATE " + bsea_buy_table_t + " SET status=0 WHERE qmt_code='" + qmt_code + "' AND dtime='" + curr_date + "' AND 策略='" + 策略 + "'")
                     if not is_开盘一字板:
                         if curr_time > '14:56:00':
                             # 先撤单
                             qu.cancel_all_order(ContextInfo, cst.account, 策略)  # todo：cancel当前单，是不是更好些？
                             if curr_time > '14:58:00':
-                                qu.sell_stock_he(ContextInfo, qmt_code, name, 可卖数量, 策略)  # 挂竞价单, 直接挂跌停价卖，最终会以收盘价成交
+                                卖出理由 = "收盘集合竞价卖出"
+                                qu.sell_stock_he(ContextInfo, qmt_code, name, 可卖数量, 策略, 卖出理由)  # 挂竞价单, 直接挂跌停价卖，最终会以收盘价成交
                                 save_or_update_by_sql("UPDATE " + bsea_buy_table_t + " SET status=0 WHERE qmt_code='" + qmt_code + "' AND dtime='" + curr_date + "' AND 策略='" + 策略 + "'")
                         else:
                             if 可卖数量 > 0:
                                 if 当前价 >= 当日涨停价 - 0.01:  # 摸涨停的情况
-                                    qu.sell_stock(ContextInfo, qmt_code, name, (当日涨停价 - 0.01), 可卖数量, 策略)  # 摸涨停价卖出
+                                    卖出理由 = "盘中摸涨停卖出"
+                                    qu.sell_stock(ContextInfo, qmt_code, name, (当日涨停价 - 0.01), 可卖数量, 策略, 卖出理由)  # 摸涨停价卖出
                                     save_or_update_by_sql("UPDATE " + bsea_buy_table_t + " SET status=0 WHERE qmt_code='" + qmt_code + "' AND dtime='" + curr_date + "' AND 策略='" + 策略 + "'")
                                 elif 当前价 <= 当日跌停价 + 0.01:  # 摸跌停的情况
-                                    qu.sell_stock(ContextInfo, qmt_code, name, 当日跌停价, 可卖数量, 策略)  # 摸跌停价卖出
+                                    卖出理由 = "盘中摸跌停卖出"
+                                    qu.sell_stock(ContextInfo, qmt_code, name, 当日跌停价, 可卖数量, 策略, 卖出理由)  # 摸跌停价卖出
                                     save_or_update_by_sql("UPDATE " + bsea_buy_table_t + " SET status=0 WHERE qmt_code='" + qmt_code + "' AND dtime='" + curr_date + "' AND 策略='" + 策略 + "'")
 
     if (curr_time >= '09:59:40' and curr_time < '10:02:00'):  # 新股_新债_申购
