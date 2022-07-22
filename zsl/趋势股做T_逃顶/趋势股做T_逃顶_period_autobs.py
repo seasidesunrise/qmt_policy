@@ -45,8 +45,8 @@ def timerHandler(ContextInfo):
         买入最小股数 = get_买入最小股数_by_qmt_code(qmt_code)
 
         观察起始日 = get_dtime_by_datefield(row, '观察起始日dtime')
-        print(f"{curr_dtime} {策略名称} 观察起始日: {观察起始日}")
-        是否做t = (get_num_by_numfield(row, '是否做t') == 1)
+        观察起始日_qmt = 观察起始日.replace('-', '').replace(':', '').replace(' ', '')
+        print(f"{curr_dtime} {策略名称} 观察起始日: {观察起始日}, 观察起始日_qmt: {观察起始日_qmt}")
         成交量放量股数阈值 = get_num_by_numfield(row, '成交量放量股数阈值')
         rt_成交量放量dtime = get_dtime_by_datefield(row, 'rt_成交量放量dtime')
         period = get_str_by_strfield(row, 'period')  # 周期
@@ -56,7 +56,7 @@ def timerHandler(ContextInfo):
         if 观察起始日 is None:
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime 设置错误，请检查，此条策略忽略！！")
             continue
-        elif 观察起始日 > curr_date:
+        elif 观察起始日 > get_curr_date() + " " + get_curr_time():
             print(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 观察起始日dtime: {观察起始日} 未到！跳过。。。")
             continue
 
@@ -144,7 +144,9 @@ def handlebar(ContextInfo):
         高于均线百分比卖出 = get_num_by_numfield(row, '高于均线百分比卖出')  # 如5，即表示高于均线5%卖出
         做t资金 = get_num_by_numfield(row, '做t资金')  # 当前做t支配的资金量
         rt_当前做t状态 = get_str_by_strfield(row, 'rt_当前做t状态')
+        观察起始日 = get_dtime_by_datefield(row, '观察起始日dtime')
         period = get_str_by_strfield(row, 'period')  # 周期
+        print(f"{curr_dtime} {策略名称} 观察起始日: {观察起始日}，period: {period}")
         if period is None or period not in qu.period_list:
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
             continue
@@ -154,11 +156,11 @@ def handlebar(ContextInfo):
         if 做t止损均线 <= 1:
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] 止损均线设置错误， 做t止损均线：{做t止损均线}，请检查，此条做T策略忽略！！")
             continue
-
-        观察起始日 = str(row['观察起始日dtime'])[:10]
-        print(f"{策略名称} 观察起始日: {观察起始日}")
-        if 观察起始日 > curr_date:
-            print(f"{curr_dtime} {策略名称} 观察起始日: {观察起始日} 未到！跳过。。。")
+        if 观察起始日 is None:
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime 设置错误，请检查，此条策略忽略！！")
+            continue
+        elif 观察起始日 > get_curr_date() + " " + get_curr_time():
+            log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 观察起始日: {观察起始日} 未到！跳过，此条策略忽略", 7200)
             continue
 
         if 是否做t:

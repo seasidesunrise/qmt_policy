@@ -42,8 +42,8 @@ def timerHandler(ContextInfo):
         qmt_code = row['qmt_code']
         name = qu.get_name_by_qmtcode(ContextInfo, qmt_code)
         观察起始日 = get_dtime_by_datefield(row, '观察起始日dtime')
-        print(f"{curr_dtime} {策略名称} 观察起始日: {观察起始日}")
-        是否做t = (get_num_by_numfield(row, '是否做t') == 1)
+        观察起始日_qmt = 观察起始日.replace('-', '').replace(':', '').replace(' ', '')
+        print(f"{curr_dtime} {策略名称} 观察起始日: {观察起始日}, 观察起始日_qmt: {观察起始日_qmt}")
         成交量放量股数阈值 = get_num_by_numfield(row, '成交量放量股数阈值')  # 单位：万手
         rt_成交量放量dtime = get_dtime_by_datefield(row, 'rt_成交量放量dtime')
         period = get_str_by_strfield(row, 'period')  # 周期
@@ -53,12 +53,12 @@ def timerHandler(ContextInfo):
         if 观察起始日 is None:
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime 设置错误，请检查，此条策略忽略！！")
             continue
-        elif 观察起始日 > get_curr_date():
+        elif 观察起始日 > get_curr_date() + " " + get_curr_time():
             print(f"{curr_dtime} {策略名称} {qmt_code}[{name}] 观察起始日dtime: {观察起始日} 未到！跳过。。。")
             continue
 
         end_time = get_curr_date().replace('-', '') + "150000"
-        df = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', start_time=观察起始日.replace('-', ''), end_time=end_time)
+        df = ContextInfo.get_market_data(fields=['volume', 'amount', 'open', 'high', 'low', 'close'], stock_code=[qmt_code], period=period, dividend_type='front', start_time=观察起始日_qmt, end_time=end_time)
         df['pre_close'] = df['close'].shift(1)
         df['high涨幅'] = 100 * (df['high'] - df['pre_close']) / df['pre_close']
         print(df)
@@ -70,7 +70,7 @@ def timerHandler(ContextInfo):
             ii += 1
             volume = row2['volume'] / 10000  # 转为：万手
             dt = str(index2)
-            dt2 = dt[:4] + "-" + dt[4:6] + "-" + dt[6:8] + dt[8:]
+            dt2 = dt[:4] + "-" + dt[4:6] + "-" + dt[6:8] + dt[8:]  # qmt返回的index可能为 "20220720"、"20220722 15:00:00"
 
             if volume > 成交量放量股数阈值:
                 rt_成交量放量dt = dt2
@@ -141,7 +141,9 @@ def handlebar(ContextInfo):
         低于均线百分比买入 = get_num_by_numfield(row, '低于均线百分比买入')  # 如5，即表示低于均线5%买入
         做t资金 = get_num_by_numfield(row, '做t资金')  # 当前做t支配的资金量
         rt_当前做t状态 = get_str_by_strfield(row, 'rt_当前做t状态')
+        观察起始日 = get_dtime_by_datefield(row, '观察起始日dtime')
         period = get_str_by_strfield(row, 'period')  # 周期
+        print(f"{curr_dtime} {策略名称} 观察起始日: {观察起始日}，period: {period}")
         if period is None or period not in qu.period_list:
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] period 设置错误，必须为：{qu.period_list} 其中之一，请检查，此条做T策略忽略！！")
             continue
@@ -151,14 +153,11 @@ def handlebar(ContextInfo):
         if 做t止损均线 <= 1:
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] 止损均线设置错误， 做t止损均线：{做t止损均线}，请检查，此条做T策略忽略！！")
             continue
-
-        观察起始日 = str(row['观察起始日dtime'])[:10]
-        print(f"{curr_dtime} {策略名称} 观察起始日: {观察起始日}")
         if 观察起始日 is None:
             log_and_send_im(f"{策略名称} {qmt_code}[{name}] 观察起始日dtime 设置错误，请检查，此条策略忽略！！")
             continue
-        elif 观察起始日 > get_curr_date():
-            log_and_send_im_with_ttl(f"{策略名称} 观察起始日: {观察起始日} 未到！跳过，此条策略忽略", 7200)
+        elif 观察起始日 > get_curr_date() + " " + get_curr_time():
+            log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 观察起始日: {观察起始日} 未到！跳过，此条策略忽略", 7200)
             continue
 
         if 是否做t:

@@ -10,15 +10,12 @@
 4、兼容各种period：'5m', '15m', '30m', '1h', '1d', '1w', '1mon'
 5、买入、卖出，均采用2%滑点下单，没成交就没成交了
 
-todo：
-1、止损时，是否要先做撤单；
-
 """
 
 import bsea_utils.bsea_xyy_qmt_util as qu
 from bsea_utils.bsea_xyy_util import *
 
-策略名称 = '均线做T'  # 先卖后买
+策略名称 = '均线做T'
 table_t = "bsea_做t_均线_period"
 
 
@@ -58,8 +55,6 @@ def handlebar(ContextInfo):
 
         df = qu.get_quatation_by_params(ContextInfo, qmt_code, period, 做t均线, 做t止损均线)
         curr_data = df.iloc[-1]
-        # print("#######")
-        # print(df)
         当前价格 = curr_data['close']
         where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
 
