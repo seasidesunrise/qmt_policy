@@ -84,7 +84,7 @@ def handlebar(ContextInfo):
                     continue
                 卖出股数 = 100  # todo: 仓位，测试期间暂定100股
 
-                卖出理由 = f"相比{period} {做t均线}均线涨幅高于{高于均线百分比卖出}%，触发卖出"
+                卖出理由 = f"相比{period} {int(做t均线)}均线涨幅高于{高于均线百分比卖出}%，触发卖出"
                 qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称, 卖出理由)
 
                 卖出后买回价与卖出价的百分比 = get_num_by_numfield(row, '卖出后买回价与卖出价的百分比')
