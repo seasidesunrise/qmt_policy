@@ -168,8 +168,14 @@ def get_dtime_by_datefield(_row, field, default_value=None):
         return default_value
     else:
         val_dt = str(val)
-        if val_dt is not None and val_dt.strip() != '':
-            return str(val_dt)[:10]
+        val_dt = val_dt.strip()
+        if val_dt is not None and val_dt != '':
+            if len(val_dt) >= 10:
+                if len(val_dt) >= 19:
+                    ret_val = str(val_dt)[:10] + " " + val_dt[11:]
+                else:
+                    ret_val = str(val_dt)[:10] + " 00:00:00"
+            return ret_val
         else:
             return None
 

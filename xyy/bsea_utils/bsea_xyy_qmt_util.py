@@ -22,6 +22,7 @@ g_新股申购_finish_date_dict = g_逆回购_finish_date_dict = {}  # 格式：
 g_今天下过的单_dict = {}  # 格式：策略-set
 g_buy_委托单_num_dict = g_sell_委托单_num_dict = {}  # 格式：策略-num
 
+# 其它常量
 period_list = ['1m', '3m', '5m', '15m', '30m', '1h', '1d', '1w', '1mon']
 small_flt = 1 / 10000 / 10000
 
