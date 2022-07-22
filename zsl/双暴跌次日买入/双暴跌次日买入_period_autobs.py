@@ -16,6 +16,8 @@ sell_table = 'bsea_sell_info'
 
 ############  人工指定部分开始 ###############
 
+g_固定交易100股 = 0  # 值为0时，以数据库配置为准; 为1时，用来测试，即固定100股交易（用来测试，科创板会识别买200股，特例）；
+
 g_code_set = []  # 股票标的，需要建一个'双暴跌买入' 的自定义板块，作为股票池
 
 g_策略总金额 = 10 * 10000  # 该策略最大使用的资金量，单位：元
@@ -45,7 +47,6 @@ def recheck_prepare_stocks(ContextInfo):
     curr_time = get_curr_time()
     curr_dtime = curr_date + " " + curr_time
     print(f'------$$$$$$ {策略名称} timerHandler计时器 {curr_date} {get_curr_time()}')
-
 
     global g_code_set
     global g_prepare_df
@@ -90,7 +91,10 @@ def recheck_prepare_stocks(ContextInfo):
 
 
 def init(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称} 策略已启动init")
+    global g_固定交易100股
+    固定交易100股_msg = "" if not g_固定交易100股 else "->100股模式!!"
+
+    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称}  {固定交易100股_msg} 策略已启动init")
     pass_qmt_funcs()
     ContextInfo.set_account(cst.account)
 
@@ -187,7 +191,11 @@ def handlebar(ContextInfo):
                 买入资金 = min(g_单支股票最大使用金额, 可用资金)
                 买入价格 = close  # 买入价设置为当前价
                 买入股数 = 100 * int(买入资金 / 买入价格 / 100)
-                买入股数 = 买入最小股数  # todo：测试用，最大买入数量100股
+                if 买入股数 < 买入最小股数:
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。可用资金：{可用资金}, g_单支股票最大使用金额: {g_单支股票最大使用金额}")
+                    continue
+                if g_固定交易100股:
+                    买入股数 = 买入最小股数
 
                 qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
                 log_and_send_im(f"{策略名称} {name}[{qmt_code}]达到第三天下跌阈值{g_curr下跌阈值}%，委托买入，下单金额: {买入资金}, 委托价格：核按钮买入, 买入股数： {买入股数}")
@@ -225,13 +233,14 @@ def handlebar(ContextInfo):
         if data0['盈亏比例'] >= g_止盈比例 / 100:
             # 下单卖出
             卖出价格 = data0['当前价']
-            卖出数量 = data0['可卖数量']
+            卖出股数 = data0['可卖数量']
             当前持仓量 = data0['当前持仓量']
-            if 卖出数量 <= 0:
-                log_and_send_im(f"{策略名称} {qmt_code}当前持仓量：{当前持仓量}, 可卖数量为: {卖出数量}, 无法卖出！！！")
+            if 卖出股数 <= 0:
+                log_and_send_im(f"{策略名称} {qmt_code}当前持仓量：{当前持仓量}, 卖出股数: {卖出股数}, 无法卖出！！！")
             else:
                 卖出理由 = f"浮盈比例大于，{g_止盈比例}%，触发止盈"
-                qu.sell_stock_he_2p(ContextInfo, code, name, 卖出价格, 卖出数量, 策略名称, 卖出理由)  # 放到前面去设置'是否卖出'=1
+                qu.sell_stock_he_2p(ContextInfo, code, name, 卖出价格, 卖出股数, 策略名称, 卖出理由)  # 放到前面去设置'是否卖出'=1
+                log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到浮盈大于止盈比例，持仓可卖数量：{当前持仓量}, 可卖股数:{卖出股数}, 下单实际卖出股数: {卖出股数}！！")
 
 
 def deal_callback(ContextInfo, dealInfo):

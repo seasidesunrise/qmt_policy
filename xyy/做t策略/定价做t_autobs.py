@@ -51,28 +51,31 @@ def handlebar(ContextInfo):
         curr_data = df.iloc[0]
         当前价格 = curr_data['close']
 
-        if 当前价格 < price_zs:  # 跌破止损均线，止损
-            卖出数量 = qu.get_可卖股数_by_qmtcode(cst.account, qmt_code)
-            if 卖出数量 == 0:
+        if 当前价格 < price_zs:  # 跌破止损价，止损
+            持仓可卖股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
+            做t资金可卖股数 = int(做t资金 / 当前价格 / 100) * 100
+            卖出股数 = min(持仓可卖股数, 做t资金可卖股数)
+            if 卖出股数 == 0:
                 log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0")
                 continue
 
-            卖出数量 = 100  # todo：应该全部卖掉
-            卖出理由 = "价格低于设置的做t止损价格，触发止损"
-            qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出数量, 策略名称, 卖出理由)  # 带价格笼子的核按钮卖出
+            卖出理由 = f"价格低于设置的做t止损价格，触发止损 {卖出股数}股"
+            qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称, 卖出理由)  # 带价格笼子的核按钮卖出
 
             save_or_update_by_sql("UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "' WHERE qmt_code='" + qmt_code + "'")
-            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 卖出数量: {卖出数量} 达到止损卖出条件，已清仓！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 卖出股数: {卖出股数} 达到止损卖出条件，已清仓！！")
         else:
             where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
             if (rt_当前做t状态 == '' or rt_当前做t状态 == '已T出') and (price_zs < 当前价格 <= price_low):  # 刚开始，或已经卖； 当价格跌到买入价位置，执行'买回'动作
-                买入股数 = int(做t资金 / 当前价格 / 100) * 100
+                账户可用资金 = qu.get_可用资金()
+                账户资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
+                做t资金买入股数 = int(做t资金 / 当前价格 / 100) * 100
+                买入股数 = min(账户资金最多买入股数, 做t资金买入股数)
                 if 买入股数 < 买入最小股数:
                     log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 买入股数 不足100股，做t资金：{做t资金}")
                     continue
-                买入股数 = 买入最小股数  # todo: 仓位大小需要
 
-                买入理由 = "价格低于设置的做t买入价格，触发买入"
+                买入理由 = f"价格低于设置的做t买入价格，触发买入 {买入股数}股"
                 qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称, 买入理由)
 
                 t_status = T_Type.已买回.value
@@ -81,15 +84,14 @@ def handlebar(ContextInfo):
                 continue
 
             if (rt_当前做t状态 == '' or rt_当前做t状态 == '已买回') and (当前价格 >= price_high):  # 刚开始，或已经买； 当价格上升到卖出价位置，执行'卖出'动作
-                可卖股数 = qu.get_可卖股数_by_qmtcode(cst.account, qmt_code)
+                持仓可卖股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
                 做t资金卖出股数 = int(做t资金 / 当前价格 / 100) * 100
-                卖出股数 = min(rt_当前持股数, 做t资金卖出股数, 可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出
+                卖出股数 = min(做t资金卖出股数, 持仓可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出
                 if 卖出股数 < 100:
-                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db卖出股数：{rt_当前持股数}, 持仓可卖股数: {可卖股数}")
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t资金卖出股数：{做t资金卖出股数}, 持仓可卖股数: {持仓可卖股数}")
                     continue
-                卖出股数 = 100  # todo: 仓位大小需要
 
-                卖出理由 = "价格高于设置的做t卖出价格，触发卖出"
+                卖出理由 = f"价格高于设置的做t卖出价格，触发卖出 {卖出股数}股"
                 qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称, 卖出理由)
 
                 t_status = T_Type.已t出.value

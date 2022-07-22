@@ -40,6 +40,11 @@ def handlebar(ContextInfo):
             log_and_send_im_with_ttl(f"{pk_id} 条件单类型: {条件单类型} 配置错误，请检查！")
             continue
 
+        交易截止有效期_db = get_dtime_by_datefield(row, '交易截止时间')
+        交易截止有效期 = 交易截止有效期_db if 交易截止有效期_db is not None else (curr_date + " 15:00:00")
+        交易价格 = get_num_by_numfield(row, '交易价格')
+        交易股数 = get_num_by_numfield(row, '交易股数')
+
         df = ContextInfo.get_market_data(fields=['volume', 'close'], stock_code=[qmt_code], period='1d', dividend_type='front', count=1)
         if len(df) == 0 or df.iloc[0]['volume'] == 0:  # 判断volume是为了过滤停牌
             log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 获取行情数据失败，跳过")
@@ -49,26 +54,22 @@ def handlebar(ContextInfo):
         where_clause = " WHERE id='" + str(pk_id) + "'"
 
         if 条件单类型 == 定价条件单.定价买入.value:
-            买入价格 = get_num_by_numfield(row, '交易价格')
-            买入数量 = get_num_by_numfield(row, '交易股数')
-            买入截止有效期db = get_dtime_by_datefield(row, '交易截止日期')
-            买入截止有效期 = 买入截止有效期db if 买入截止有效期db is not None else curr_date
             is_valid_买入配置 = False
-            if 买入价格 > 0 and 买入数量 >= 买入最小股数 and 买入截止有效期 >= curr_date:
+            if 交易价格 > 0 and 交易股数 >= 买入最小股数 and 交易截止有效期 >= curr_date:
                 is_valid_买入配置 = True
 
             if not is_valid_买入配置:
-                log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期}  {int(pk_id)}此条配置无效，请检查！当天跳过。")
+                log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] {交易价格} {交易股数} {交易截止有效期}  {int(pk_id)}此条配置无效，请检查！当天跳过。。")
                 continue
             else:
-                if 当前价格 <= 买入价格:
+                if 当前价格 <= 交易价格:
                     账户可用资金 = qu.get_可用资金()
                     资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
-                    买入股数 = min(买入数量, 资金最多买入股数)
+                    买入股数 = min(交易股数, 资金最多买入股数)
                     if 买入股数 < 买入最小股数:
-                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但买入股数为零。db买入股数：{买入数量}, 资金最多买入股数: {资金最多买入股数}, 账户可用资金: {账户可用资金}")
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但买入股数为零。db买入股数：{交易股数}, 资金最多买入股数: {资金最多买入股数}, 账户可用资金: {账户可用资金}")
                         continue
-                    买入股数 = 买入最小股数  # todo: 待删除
+
                     买入理由 = "价格低于设置的定价买入价格"
                     qu.buy_stock_he(ContextInfo, qmt_code, name, 买入股数, 策略名称, 买入理由)
 
@@ -77,26 +78,22 @@ def handlebar(ContextInfo):
 
 
         elif 条件单类型 == 定价条件单.定价卖出.value:
-            卖出价格 = get_num_by_numfield(row, '交易价格')
-            卖出数量 = get_num_by_numfield(row, '交易股数')
-            卖出截止有效期_db = get_dtime_by_datefield(row, '交易截止日期')
-            卖出截止有效期 = 卖出截止有效期_db if 卖出截止有效期_db is not None else curr_date
             is_valid_卖出配置 = False
-            if 卖出价格 > 0 and 卖出数量 >= 100 and 卖出截止有效期 >= curr_date:
+            if 交易价格 > 0 and 交易股数 >= 100 and 交易截止有效期 >= curr_date:
                 is_valid_卖出配置 = True
 
             if not is_valid_卖出配置:
-                log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] {买入价格} {买入数量} {买入截止有效期} {int(pk_id)}此条配置无效，请检查！当天跳过。")
+                log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] {交易价格} {交易股数} {交易截止有效期} {int(pk_id)} 此条配置无效，请检查！当天跳过。")
                 continue
             else:
-                if 当前价格 >= 卖出价格:
+                if 当前价格 >= 交易价格:
                     当前持股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
-                    卖出股数 = min(卖出数量, 当前持股数)
+                    卖出股数 = min(交易股数, 当前持股数)
                     if 卖出股数 < 100:
-                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db卖出股数：{卖出数量}, 持仓可卖股数: {当前持股数}")
+                        log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db卖出股数：{交易股数}, 持仓可卖股数: {当前持股数}")
                         continue
-                    卖出股数 = 100  # todo：待删除
-                    卖出理由 = "价格高于设置的定价卖出价格"
+
+                    卖出理由 = f"价格高于设置的定价卖出价格，卖出 {卖出股数}股"
                     qu.sell_stock_he(ContextInfo, qmt_code, name, 卖出股数, 策略名称, 卖出理由)
 
                     update_sql = "UPDATE " + table_t + " SET status='0', lastmodified='" + get_lastmodified() + "'" + where_clause

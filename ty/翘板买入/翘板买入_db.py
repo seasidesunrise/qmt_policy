@@ -18,15 +18,15 @@ from bsea_utils.bsea_xyy_util import *
 策略名称 = '翘板买入'
 table_t = 'bsea_翘板买入'
 g_data = {}
+
 ############  人工指定部分开始 ###############
 
-g_策略总金额 = 10 * 10000  # 该策略最大使用的资金量，单位：元
-g_单支股票最大使用金额 = 5 * 10000  # 单支股票做大仓位，单位：元
+g_固定交易100股 = 1  # 值为0时，以数据库配置为准; 为1时，用来测试，即固定100股交易（用来测试，科创板会识别买200股，特例）；
 
 ############  人工指定部分结束 ###############
 
 g_countdown_latch = 8
-g_prepare_df = pd.DataFrame(columns=['qmt_code', 'name', '跌停价', 'pre_close', '监控秒数', '初始跌停封单金额', '触发买入封单金额', '监控秒数内至少成交金额'])
+g_prepare_df = pd.DataFrame(columns=['qmt_code', 'name', '买入资金', '跌停价', 'pre_close', '监控秒数', '初始跌停封单金额', '触发买入封单金额', '监控秒数内至少成交金额'])
 g_今天下过的单_set = set()
 
 
@@ -53,6 +53,7 @@ def recheck_prepare_stocks(ContextInfo):
     for index, row in all_df.iterrows():
         code = row['code']
         qmt_code = qu.get_qmtcode_by_code(code)
+        买入资金 = row['买入资金']
         监控秒数 = row['监控秒数']
         初始跌停封单金额 = row['初始跌停封单金额']
         触发买入封单金额 = row['触发买入封单金额']
@@ -65,13 +66,16 @@ def recheck_prepare_stocks(ContextInfo):
         pre_close = pre1k_data['close']  # 设置pre1k收盘价
 
         print(f"{策略名称} {qmt_code}[{name}]， 跌停价: {fmt_float2str(跌停价)}")
-        g_prepare_df.loc[qmt_code] = {'qmt_code': qmt_code, 'name': name, '跌停价': 跌停价, 'pre_close': pre_close, '监控秒数': 监控秒数, '初始跌停封单金额': 初始跌停封单金额, '触发买入封单金额': 触发买入封单金额, '监控秒数内至少成交金额': 监控秒数内至少成交金额}
+        g_prepare_df.loc[qmt_code] = {'qmt_code': qmt_code, 'name': name, '买入资金': 买入资金, '跌停价': 跌停价, 'pre_close': pre_close, '监控秒数': 监控秒数, '初始跌停封单金额': 初始跌停封单金额, '触发买入封单金额': 触发买入封单金额, '监控秒数内至少成交金额': 监控秒数内至少成交金额}
 
     print(f"{策略名称}，预备股池: {g_prepare_df}")
 
 
 def init(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()} {get_curr_time()} {策略名称} 策略已启动init")
+    global g_固定交易100股
+    固定交易100股_msg = "" if not g_固定交易100股 else "->100股模式!!"
+    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称}  {固定交易100股_msg} 策略已启动init")
+
     pass_qmt_funcs()
     ContextInfo.set_account(cst.account)
 
@@ -83,7 +87,9 @@ def is_正常翘板时间(curr_time):
     """ 9点33分到尾盘14点54分为翘板工作时间，其它时间忽略 """
     if curr_time >= '09:33:00' and curr_time < '14:54:00':
         return True
-    return False
+    else:
+        print(f"{策略名称} 当前时间 {curr_time} 不在翘板工作时间[09:33 ~ 14:54]")
+        return False
 
 
 def handlebar(ContextInfo):
@@ -93,12 +99,10 @@ def handlebar(ContextInfo):
     curr_time = get_curr_time()
     curr_dtime = curr_date + " " + curr_time
 
-    if is_正常翘板时间(curr_time):
-        print(f"{策略名称} 当前时间 {curr_time} 不在翘板工作时间[09:33, 14:54]")
+    if not is_正常翘板时间(curr_time):
         return
 
     global g_prepare_df
-    # global g_final_df
     global g_今天下过的单_set
     global g_countdown_latch
     global g_data
@@ -112,20 +116,19 @@ def handlebar(ContextInfo):
         return
 
     df3 = ContextInfo.get_full_tick(stock_code=g_prepare_df['qmt_code'].tolist())
-    # if len(g_final_df) > 0:
-    #     print("======== g_final_df ====== ")
-    #     print(g_final_df)
 
     for index2, row2 in g_prepare_df.iterrows():
         qmt_code = row2['qmt_code']
         code = qmt_code[:6]
         pre_close = row2['pre_close']
+        买入资金 = row2['买入资金']
         name = row2['name']
         跌停价 = row2['跌停价']
         监控秒数 = row2['监控秒数']  # 单位：秒
         初始跌停封单金额 = row2['初始跌停封单金额']  # 单位：万元
         触发买入封单金额 = row2['触发买入封单金额']  # 单位：万元
         监控秒数内至少成交金额 = row2['监控秒数内至少成交金额']  # 单位：万元
+        买入最小股数 = qu.get_买入最小股数_by_qmt_code(qmt_code)
 
         curr_data = df3.get(qmt_code)
         if curr_data is None:
@@ -159,8 +162,10 @@ def handlebar(ContextInfo):
                     if qmt_code not in g_今天下过的单_set:
                         g_今天下过的单_set.add(qmt_code)
                         买入价格 = pre_close * (100 - 9) / 100
-                        买入股数 = int(g_单支股票最大使用金额 / 买入价格 / 100) * 100
-                        买入股数 = 100  # todo：测试期间，统一用100股
+                        买入股数 = int(买入资金 / 买入价格 / 100) * 100
+                        if g_固定交易100股:
+                            买入股数 = 买入最小股数
+
                         qu.buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
                         log_and_send_im(f"{qmt_code}[{name}] 初始跌停封单金额=0， 且跌停封单小于触发买入封单，触发买入，已下单, 买入价格：{fmt_float2str(买入价格)}, 买入股数: {买入股数}")
                     else:
@@ -180,8 +185,10 @@ def handlebar(ContextInfo):
                             if qmt_code not in g_今天下过的单_set:
                                 g_今天下过的单_set.add(qmt_code)
                                 买入价格 = pre_close * (100 - 9) / 100
-                                买入股数 = int(g_单支股票最大使用金额 / 买入价格 / 100) * 100
-                                买入股数 = 100  # todo：测试期间，统一用100股
+                                买入股数 = int(买入资金 / 买入价格 / 100) * 100
+                                if g_固定交易100股:
+                                    买入股数 = 买入最小股数
+
                                 qu.buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
                                 log_and_send_im(f"{qmt_code}[{name}] 跌停封单金额急剧减少，触发买入，已下单, 买入价格：{fmt_float2str(买入价格)}, 买入股数: {买入股数}")
                             else:
@@ -213,8 +220,10 @@ def handlebar(ContextInfo):
                         if qmt_code not in g_今天下过的单_set:
                             g_今天下过的单_set.add(qmt_code)
                             买入价格 = pre_close * (100 - 9) / 100
-                            买入股数 = int(g_单支股票最大使用金额 / 买入价格 / 100) * 100
-                            买入股数 = 100  # todo：测试期间，统一用100股
+                            买入股数 = int(买入资金 / 买入价格 / 100) * 100
+                            if g_固定交易100股:
+                                买入股数 = 买入最小股数
+
                             qu.buy_stock(ContextInfo, qmt_code, name, 买入价格, 买入股数, 策略名称)
                             log_and_send_im(f"{qmt_code}[{name}] 跌停封单金额急剧减少，触发买入，已下单, 买入价格：{fmt_float2str(买入价格)}, 买入股数: {买入股数}")
                         else:

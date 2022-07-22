@@ -18,6 +18,13 @@ from bsea_utils.bsea_xyy_util import *
 策略名称 = '均线做T'
 table_t = "bsea_做t_均线_period"
 
+############  人工指定部分开始 ###############
+
+g_固定交易100股 = 0  # 值为0时，以数据库配置为准; 为1时，用来测试，即固定100股交易（用来测试，科创板会识别买200股，特例）；
+
+
+############  人工指定部分结束 ###############
+
 
 def handlebar(ContextInfo):
     print(f'{策略名称} 这是 handlebar 中的 3秒一次的tick ~~~')
@@ -59,35 +66,40 @@ def handlebar(ContextInfo):
         where_clause = " WHERE qmt_code='" + qmt_code + "' AND account_nick='" + cst.account_nick + "'"
 
         if 做t止损均线 < 1000 and curr_data['pre_close'] < curr_data['ma' + str(做t止损均线)]:  # 止损
-            卖出数量 = qu.get_可卖股数_by_qmtcode(cst.account, qmt_code)
-            if 卖出数量 == 0:
+            持仓可卖股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
+            做t资金可卖股数 = int(做t资金 / 当前价格 / 100) * 100
+            卖出股数 = min(持仓可卖股数, 做t资金可卖股数)
+            if 卖出股数 == 0:
                 log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，但卖出股数为 0")
                 continue
+            if g_固定交易100股:
+                卖出股数 = 100
 
-            卖出数量 = 100  # todo：应该全部卖掉
-            卖出理由 = f"pre1k收盘价跌破{period} {做t止损均线}均线，触发止损"
-            qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出数量, 策略名称, 卖出理由)  # 低于当前价2个点卖出，不成交就不成交
+            卖出理由 = f"pre1k收盘价跌破{period} {做t止损均线}均线，触发做t止损卖出{卖出股数}股"
+            qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称, 卖出理由)  # 低于当前价2个点卖出，不成交就不成交
 
             save_or_update_by_sql("UPDATE " + table_t + " SET status='0' " + where_clause)
-            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到止损卖出条件，已下单清仓！！")
+            log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到 做t止损卖出 条件，持仓可卖股数：{持仓可卖股数}, 做t资金可卖股数:{做t资金可卖股数}, 实际下单卖出股数：{卖出股数} ！！")
+
         else:
             相比均线涨幅 = curr_data['相比均线涨幅']
             # 检查偏离均线幅度
             if (相比均线涨幅 >= 高于均线百分比卖出 > 0) and (rt_当前做t状态 == '' or rt_当前做t状态 == '已买回'):  # 做T动作：卖出
                 持仓可卖股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
-                做t卖出股数 = int(做t资金 / 当前价格 / 100) * 100
-                卖出股数 = min(做t卖出股数, 持仓可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出， todo：当前持股数逻辑需要讨论修改，测试期间先忽略
+                做t资金可卖股数 = int(做t资金 / 当前价格 / 100) * 100
+                卖出股数 = min(做t资金可卖股数, 持仓可卖股数)  # 取db中的当前持股数与持仓中的可卖股数，取数字小的那个卖出， todo：当前持股数逻辑需要讨论修改，测试期间先忽略
                 if 卖出股数 == 0:
-                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t卖出股数：{做t卖出股数}, 持仓可卖股数: {持仓可卖股数}")
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。做t资金可卖股数：{做t资金可卖股数}, 持仓可卖股数: {持仓可卖股数}")
                     continue
-                卖出股数 = 100  # todo: 仓位，测试期间暂定100股
+                if g_固定交易100股:
+                    卖出股数 = 100
 
-                卖出理由 = f"相比{period} {int(做t均线)}均线涨幅高于{高于均线百分比卖出}%，触发卖出"
+                卖出理由 = f"相比{period} {int(做t均线)}均线涨幅高于{高于均线百分比卖出}%，触发卖出{卖出股数}股"
                 qu.sell_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 卖出股数, 策略名称, 卖出理由)  # 低于当前价2个点卖出，不成交就不成交
 
                 t_status = T_Type.已t出.value
-                update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(0) + "' " + where_clause
-                save_or_update_by_sql(update_sql)
+                save_or_update_by_sql("UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(0) + "' " + where_clause)
+                log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到 相比均线涨幅高于均线百分比 卖出条件，持仓可卖股数：{持仓可卖股数}, 做t资金可卖股数:{做t资金可卖股数}, 实际下单卖出股数: {卖出股数}")
                 continue
 
             if (相比均线涨幅 <= -低于均线百分比买入 < 0) and (rt_当前做t状态 == '' or rt_当前做t状态 == '已T出'):  # 做T动作：买回
@@ -97,25 +109,29 @@ def handlebar(ContextInfo):
                     continue
 
                 账户可用资金 = qu.get_可用资金()
-                资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
+                账户资金最多买入股数 = int(账户可用资金 / 当前价格 / 100) * 100
                 做t资金买入股数 = int(做t资金 / 当前价格 / 100) * 100
-                买入股数 = min(资金最多买入股数, 做t资金买入股数)
+                买入股数 = min(账户资金最多买入股数, 做t资金买入股数)
                 if 买入股数 < 买入最小股数:
-                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。账户资金最多买入股数：{资金最多买入股数}, 做t资金买入股数: {做t资金买入股数}")
+                    log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到买入条件，但可买入股数不足一手。账户资金最多买入股数：{账户资金最多买入股数}, 做t资金买入股数: {做t资金买入股数}")
                     continue
-                买入股数 = 买入最小股数  # todo: 仓位大小需要
+                if g_固定交易100股:
+                    买入股数 = 买入最小股数
 
-                买入理由 = f"当前价相比{period} {int(做t均线)}均线涨幅低于：-{低于均线百分比买入}%，触发做t买回"
+                买入理由 = f"当前价相比{period} {int(做t均线)}均线涨幅低于：-{低于均线百分比买入}%，触发做t买回{买入股数}股"
                 qu.buy_stock_he_2p(ContextInfo, qmt_code, name, 当前价格, 买入股数, 策略名称, 买入理由)
 
                 t_status = T_Type.已买回.value
-                update_sql = "UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause
-                save_or_update_by_sql(update_sql)
+                save_or_update_by_sql("UPDATE " + table_t + " SET rt_当前做t状态='" + t_status + "', rt_当前持股数='" + str(买入股数) + "' " + where_clause)
+                log_and_send_im(f"{策略名称} {qmt_code}[{name}] 达到 价格低于买回价格 买入条件，账户资金最多买入股数：{账户资金最多买入股数}, 做t资金买入股数:{做t资金买入股数}, 实际下单买入股数: {买入股数}")
                 continue
 
 
 def init(ContextInfo):
-    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称} 策略已启动init")
+    global g_固定交易100股
+    固定交易100股_msg = "" if not g_固定交易100股 else "->100股模式!!"
+    log_and_send_im(f"------$$$$$$ {get_curr_date()}  {get_curr_time()}  {策略名称}  {固定交易100股_msg} 策略已启动init")
+
     pass_qmt_funcs()
     ContextInfo.set_account(cst.account)
 
