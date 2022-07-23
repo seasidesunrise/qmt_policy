@@ -249,7 +249,7 @@ def handlebar(ContextInfo):
             if 顶部止损均线 < 1000 and curr_data['pre_close'] < curr_data['ma' + str(顶部止损均线)]:  # 止损
                 持仓可卖股数 = qu.get_可卖股数_by_qmtcode(qmt_code)
                 db可卖股数 = get_num_by_numfield(row, '跌破顶部止损均线需卖出股数')
-                卖出股数 = min(db可卖股数, 持仓可卖数量)
+                卖出股数 = min(db可卖股数, 持仓可卖股数)
                 if 卖出股数 == 0:
                     log_and_send_im_with_ttl(f"{策略名称} {qmt_code}[{name}] 达到卖出条件，但卖出股数为零。db可卖数量：{db可卖股数}, 持仓可卖股数: {持仓可卖股数}")
                     continue
